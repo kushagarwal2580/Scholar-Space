@@ -8,9 +8,5 @@ A comprehensive study companion that helps you organize your materials, track st
 - **Material Organization**: Keep your study materials organized.
 
 ## Requirements
-- Android Device (Minimum SDK 26)
+- Android Device (Minimum Android 8.0/SDK 26)
 - Google Account (for Drive Sync)
-
-## Build Instructions
-1. Open the project in Android Studio.
-2. Build and run the application on your device or emulator.
