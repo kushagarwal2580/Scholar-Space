@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -582,23 +583,19 @@ fun DashboardScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = listOf(Color(0xFF0F172A), Color(0xFF1E1B4B))
-                            )
-                        ),
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF0F172A).copy(alpha = 0.4f)), // Dull effect behind logo
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
                             contentDescription = "App Logo",
                             tint = Color.Unspecified,
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.requiredSize(84.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
                             text = "Scholar Space",
@@ -2708,7 +2705,9 @@ fun AudioPlayDialog(
                         Text(
                             text = String.format("%02d:%02d", (currentPosition / 1000) / 60, (currentPosition / 1000) % 60),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.requiredWidth(42.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         var isDraggingSlider by remember { mutableStateOf(false) }
                         var wasPlayingBeforeDrag by remember { mutableStateOf(false) }
@@ -2751,7 +2750,9 @@ fun AudioPlayDialog(
                         Text(
                             text = String.format("%02d:%02d", (displayDuration / 1000) / 60, (displayDuration / 1000) % 60),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.requiredWidth(42.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                 }

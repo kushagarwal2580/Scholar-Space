@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.background
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -728,11 +731,15 @@ private fun ScholarSpaceSplashScreen() {
                             scaleY = logoScale
                             alpha = logoAlpha
                         }
+                        .size(160.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(Color(0xFF0F172A).copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     androidx.compose.material3.Icon(
                         painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
                         contentDescription = "App Logo",
-                        modifier = Modifier.size(140.dp),
+                        modifier = Modifier.requiredSize(240.dp),
                         tint = Color.Unspecified
                     )
                 }

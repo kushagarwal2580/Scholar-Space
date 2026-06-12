@@ -1523,7 +1523,9 @@ fun VoiceNoteCard(
                     Text(
                         text = String.format("%02d:%02d", (currentPosition / 1000) / 60, (currentPosition / 1000) % 60),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.requiredWidth(42.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     var isDraggingSlider by remember { mutableStateOf(false) }
                     var wasPlayingBeforeDrag by remember { mutableStateOf(false) }
@@ -1564,7 +1566,9 @@ fun VoiceNoteCard(
                     Text(
                         text = String.format("%02d:%02d", (duration / 1000) / 60, (duration / 1000) % 60),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.requiredWidth(42.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }

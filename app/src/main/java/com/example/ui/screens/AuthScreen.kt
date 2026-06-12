@@ -6,6 +6,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -91,13 +94,21 @@ fun AuthScreen(authViewModel: AuthViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // App Logo
-            Icon(
-                painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
-                contentDescription = "App Logo",
-                modifier = Modifier.size(80.dp),
-                tint = Color.Unspecified
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Color(0xFF0F172A).copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
+                    contentDescription = "App Logo",
+                    modifier = Modifier.requiredSize(150.dp),
+                    tint = Color.Unspecified
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Scholar Space",
                 fontSize = 32.sp,

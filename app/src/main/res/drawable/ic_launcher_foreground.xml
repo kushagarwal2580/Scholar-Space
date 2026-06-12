@@ -4,7 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group>
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.75" android:scaleY="0.75">
         <path
             android:fillColor="#6366F1"
             android:pathData="M54 24 L84 39 L54 54 L24 39 Z" />
