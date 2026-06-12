@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="app/src/main/ic_launcher-playstore.png" width="150" height="150" alt="Scholar Space Logo" onError="this.style.display='none'"/>
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="150" height="150" alt="Scholar Space Logo" />
   
   # Scholar Space
 </div>
