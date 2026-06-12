@@ -239,17 +239,23 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    fun restoreAppState(data: AppStateData) {
+    fun restoreAppState(data: AppStateData, isRelogin: Boolean = false) {
         viewModelScope.launch {
-            _timers.value = data.timers
+            if (isRelogin) {
+                _timers.value = data.timers
+                _stopwatches.value = data.stopwatches
+            }
+            
+            // We intentionally do not restore `timers` and `stopwatches` from Google Drive
+            // on regular app restarts to prevent overwriting active background timers/stopwatches.
             _dayCounters.value = data.dayCounters
             _isDarkMode.value = data.isDarkMode
             _allReminders.value = data.reminders
             _notes.value = data.notes
             _voiceNotes.value = data.voiceNotes
-            _stopwatches.value = data.stopwatches
             _pinnedNote1Id.value = data.pinnedNote1Id
             _pinnedNote2Id.value = data.pinnedNote2Id
+
             
             val restoredFiles = data.files.map { p ->
                 val ext = p.title.substringAfterLast('.', "").lowercase()
@@ -590,6 +596,34 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private val _timers = MutableStateFlow<List<TimerItem>>(emptyList())
     val timers: StateFlow<List<TimerItem>> = _timers.asStateFlow()
     
+    private val _hasAcknowledgedBackgroundRun = MutableStateFlow(prefs.getBoolean("hasAcknowledgedBackgroundRun", false))
+    val hasAcknowledgedBackgroundRun: StateFlow<Boolean> = _hasAcknowledgedBackgroundRun.asStateFlow()
+
+    fun acknowledgeBackgroundRun() {
+        prefs.edit().putBoolean("hasAcknowledgedBackgroundRun", true).apply()
+        _hasAcknowledgedBackgroundRun.value = true
+    }
+
+    private var isActiveTimersServiceRunning = false
+
+    private fun updateActiveTimersService() {
+        val hasRunningTimer = _timers.value.any { it.isRunning && it.timeRemaining > 0 } || _stopwatches.value.any { it.isRunning }
+        val app = getApplication<Application>()
+        if (hasRunningTimer && !isActiveTimersServiceRunning) {
+            val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                app.startForegroundService(serviceIntent)
+            } else {
+                app.startService(serviceIntent)
+            }
+            isActiveTimersServiceRunning = true
+        } else if (!hasRunningTimer && isActiveTimersServiceRunning) {
+            val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
+            app.stopService(serviceIntent)
+            isActiveTimersServiceRunning = false
+        }
+    }
+
     private val _allFiles = MutableStateFlow<List<LibraryItem>>(emptyList())
     val allFiles: StateFlow<List<LibraryItem>> = _allFiles.asStateFlow()
 
@@ -729,6 +763,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(app, updated)
             }
         }
+        updateActiveTimersService()
         saveData()
     }
     
@@ -815,6 +850,15 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         super.onCleared()
         if (activeInstance == this) {
             activeInstance = null
+        }
+    }
+
+    fun getLastModifiedLocally(): Long {
+        val jsonStr = prefs.getString("app_state", null) ?: return 0L
+        return try {
+            json.decodeFromString<AppStateData>(jsonStr).timestamp
+        } catch (e: Exception) {
+            0L
         }
     }
 
@@ -1015,6 +1059,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 com.example.ui.notifications.NotificationHelper.updateTimerNotification(app, updated)
             }
         }
+        updateActiveTimersService()
         saveData()
     }
     
@@ -1075,6 +1120,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
 
         checkRemindersAndCounters()
+        updateActiveTimersService()
     }
 
     private fun checkRemindersAndCounters() {
@@ -1486,11 +1532,22 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             }
 
             withContext(Dispatchers.Main) {
+                val app = getApplication<android.app.Application>()
+                _timers.value.forEach {
+                    com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + it.id)
+                }
+                _stopwatches.value.forEach {
+                    com.example.ui.notifications.NotificationHelper.cancelNotification(app, it.id)
+                }
+                updateActiveTimersService()
+
                 _allFiles.value = emptyList()
                 _timers.value = emptyList()
+                _stopwatches.value = emptyList()
                 _dayCounters.value = emptyList()
                 _allReminders.value = emptyMap()
                 _notes.value = emptyList()
+                _voiceNotes.value = emptyList()
                 _pinnedNote1Id.value = null
                 _pinnedNote2Id.value = null
                 _currentFolderId.value = null

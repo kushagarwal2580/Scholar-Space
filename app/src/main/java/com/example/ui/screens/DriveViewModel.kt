@@ -592,6 +592,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         
+        val prefs = context.getSharedPreferences("ScholarSpacePrefs", Context.MODE_PRIVATE)
+        val lastSyncedAccount = prefs.getString("last_synced_account", "")
+        val isRelogin = lastSyncedAccount != email
+        
         viewModelScope.launch {
             if (_isMetadataSyncing.value) {
                 onComplete(false)
@@ -768,6 +772,14 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                         if (!jsonString.isNullOrBlank()) {
                             val syncData = json.decodeFromString(ScholarSpaceSyncData.serializer(), jsonString)
                             
+                            val localLastModified = libraryViewModel.getLastModifiedLocally()
+                            if (syncData.appState.timestamp < localLastModified) {
+                                Log.i("DriveViewModel", "Local state is newer than Drive state, uploading instead")
+                                _isMetadataSyncing.value = false
+                                syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete = onComplete)
+                                return@launch
+                            }
+                            
                             // 1. Restore local profile info if logged in successfully
                             val currentAuth = authViewModel.uiState.value
                             var finalProfilePic = if (currentAuth is AuthState.Success) currentAuth.profilePic else null
@@ -835,7 +847,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                             }
                             
                             // 2. Restore app state (timers, reminders, day counters, isDarkMode, library files, etc.)
-                            libraryViewModel.restoreAppState(syncData.appState)
+                            libraryViewModel.restoreAppState(syncData.appState, isRelogin)
                             
                             if (currentAuth is AuthState.Success) {
                                 val prefs = context.getSharedPreferences("ScholarSpacePrefs", android.content.Context.MODE_PRIVATE)
@@ -857,7 +869,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                         // Remote file doesn't exist yet, push the current local state up on initial log in so it initializes remote backup
                         Log.i("DriveViewModel", "No remote metadata file found, initializing with local state")
                         _isMetadataSyncing.value = false // reset flag so nested call works
-                        syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete)
+                        syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete = onComplete)
                     }
                 }
             } catch (e: com.google.android.gms.auth.UserRecoverableAuthException) {

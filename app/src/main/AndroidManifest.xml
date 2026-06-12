@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:allowBackup="true"
@@ -58,6 +60,13 @@
         </provider>
         
         <receiver android:name=".ui.notifications.NotificationReceiver" android:exported="false" />
+        
+        <service 
+            android:name=".services.ActiveTimersService" 
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Timers and Stopwatches background running" />
+        </service>
     </application>
 
 </manifest>

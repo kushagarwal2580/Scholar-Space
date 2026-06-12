@@ -325,6 +325,14 @@ fun NotesScreen(
                                             isSelectionMode = true
                                             selectedNotes = setOf(note.id)
                                         }
+                                    },
+                                    onDownloadRequest = {
+                                        if (!isOnline.value) {
+                                            syncMessageText = "Please connect to internet"
+                                            syncMessageColor = androidx.compose.ui.graphics.Color(0xFFEF4444)
+                                            showSyncCompleteMessage = true
+                                            coroutineScope.launch { kotlinx.coroutines.delay(3000); showSyncCompleteMessage = false }
+                                        }
                                     }
                                 )
                             }
@@ -1195,7 +1203,8 @@ fun VoiceNoteCard(
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onClick: () -> Unit = {},
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    onDownloadRequest: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
@@ -1267,6 +1276,7 @@ fun VoiceNoteCard(
                 IconButton(
                     onClick = {
                         if (!fileExists && note.driveFileId != null && !isDownloading) {
+                            onDownloadRequest()
                             // Download
                             driveViewModel.downloadFileFromDrive(context, libraryViewModel, note.driveFileId, note.title, note.id) {
                                 // No callback needed, observing state

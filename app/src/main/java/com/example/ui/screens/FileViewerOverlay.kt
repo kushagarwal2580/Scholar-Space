@@ -34,6 +34,7 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.border
@@ -52,6 +53,30 @@ fun FileViewerOverlay(
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(true) }
+
+    val view = LocalView.current
+    val window = (context as? android.app.Activity)?.window
+
+    LaunchedEffect(showControls) {
+        if (window != null) {
+            val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, view)
+            if (showControls) {
+                insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            } else {
+                insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (window != null) {
+                val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, view)
+                insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
 
     val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val safeTopPadding = if (statusBarHeight > 0.dp) statusBarHeight else 40.dp

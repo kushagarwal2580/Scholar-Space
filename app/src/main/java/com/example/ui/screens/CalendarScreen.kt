@@ -60,6 +60,20 @@ fun CalendarScreen(
     var counterToDelete by remember { mutableStateOf<Int?>(null) }
     var timerToDelete by remember { mutableStateOf<Int?>(null) }
     var stopwatchToDelete by remember { mutableStateOf<Int?>(null) }
+    var requiredAckForAction: (() -> Unit)? by remember { mutableStateOf(null) }
+    
+    val hasAcknowledgedBackgroundRun by libraryViewModel.hasAcknowledgedBackgroundRun.collectAsState()
+
+    if (requiredAckForAction != null) {
+        com.example.ui.components.BackgroundPermissionDialog(
+            onConfirm = {
+                libraryViewModel.acknowledgeBackgroundRun()
+                requiredAckForAction?.invoke()
+                requiredAckForAction = null
+            },
+            onDismiss = { requiredAckForAction = null }
+        )
+    }
 
     if (reminderToDelete != null) {
         com.example.ui.components.ConfirmationDialog(
@@ -380,7 +394,13 @@ fun CalendarScreen(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                IconButton(onClick = { libraryViewModel.toggleStopwatch(stopwatch.id) }) {
+                                IconButton(onClick = { 
+                                    if (!hasAcknowledgedBackgroundRun && !stopwatch.isRunning) {
+                                        requiredAckForAction = { libraryViewModel.toggleStopwatch(stopwatch.id) }
+                                    } else {
+                                        libraryViewModel.toggleStopwatch(stopwatch.id)
+                                    }
+                                }) {
                                     Icon(
                                         imageVector = if (stopwatch.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                                         contentDescription = if (stopwatch.isRunning) "Pause" else "Play",
@@ -453,7 +473,13 @@ fun CalendarScreen(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                IconButton(onClick = { libraryViewModel.toggleTimer(timer.id) }) {
+                                IconButton(onClick = { 
+                                    if (!hasAcknowledgedBackgroundRun && !timer.isRunning) {
+                                        requiredAckForAction = { libraryViewModel.toggleTimer(timer.id) }
+                                    } else {
+                                        libraryViewModel.toggleTimer(timer.id)
+                                    }
+                                }) {
                                     Icon(
                                         imageVector = if (timer.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                                         contentDescription = if (timer.isRunning) "Pause" else "Play",

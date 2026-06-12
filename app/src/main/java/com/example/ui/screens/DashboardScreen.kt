@@ -93,6 +93,8 @@ fun DashboardScreen(
     val scholarSpaceFolderId by driveViewModel.scholarSpaceFolderId.collectAsState()
     val uploadingFiles by driveViewModel.uploadingFiles.collectAsState()
     val downloadingFiles by driveViewModel.downloadingFiles.collectAsState()
+    val hasAcknowledgedBackgroundRun by libraryViewModel.hasAcknowledgedBackgroundRun.collectAsState()
+    var requiredAckForAction: (() -> Unit)? by remember { mutableStateOf(null) }
     
     val isOnline = remember { 
         mutableStateOf(
@@ -237,6 +239,17 @@ fun DashboardScreen(
         }
     }
     
+    if (requiredAckForAction != null) {
+        com.example.ui.components.BackgroundPermissionDialog(
+            onConfirm = {
+                libraryViewModel.acknowledgeBackgroundRun()
+                requiredAckForAction?.invoke()
+                requiredAckForAction = null
+            },
+            onDismiss = { requiredAckForAction = null }
+        )
+    }
+
     BackHandler(enabled = searchActive) {
         libraryViewModel.isSearchActive.value = false
         searchQuery = ""
@@ -878,7 +891,13 @@ fun DashboardScreen(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                IconButton(onClick = { libraryViewModel.toggleTimer(pinnedTimer.id) }) {
+                                IconButton(onClick = { 
+                                    if (!hasAcknowledgedBackgroundRun && !pinnedTimer.isRunning) {
+                                        requiredAckForAction = { libraryViewModel.toggleTimer(pinnedTimer.id) }
+                                    } else {
+                                        libraryViewModel.toggleTimer(pinnedTimer.id)
+                                    }
+                                }) {
                                     Icon(
                                         imageVector = if (pinnedTimer.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                                         contentDescription = if (pinnedTimer.isRunning) "Pause" else "Play",
@@ -931,7 +950,13 @@ fun DashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(text = timeStr, fontSize = 24.sp, fontWeight = FontWeight.Light, color = Cyan400)
                             Spacer(modifier = Modifier.width(16.dp))
-                            IconButton(onClick = { libraryViewModel.toggleStopwatch(pinnedStopwatch.id) }) {
+                            IconButton(onClick = { 
+                                if (!hasAcknowledgedBackgroundRun && !pinnedStopwatch.isRunning) {
+                                    requiredAckForAction = { libraryViewModel.toggleStopwatch(pinnedStopwatch.id) }
+                                } else {
+                                    libraryViewModel.toggleStopwatch(pinnedStopwatch.id)
+                                }
+                            }) {
                                 Icon(
                                     imageVector = if (pinnedStopwatch.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                                     contentDescription = if (pinnedStopwatch.isRunning) "Pause" else "Play",
@@ -1370,7 +1395,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote1 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote1, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, onClick = { showAudioPlayDialogForNote = voiceNote1 })
+                                    PinnedVoiceNotePlayer(note = voiceNote1, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { showAudioPlayDialogForNote = voiceNote1 })
                                 } else {
                                     Text(
                                         text = textNote1?.content?.ifBlank { "No content" } ?: "",
@@ -1448,7 +1473,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote2 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote2, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, onClick = { showAudioPlayDialogForNote = voiceNote2 })
+                                    PinnedVoiceNotePlayer(note = voiceNote2, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { showAudioPlayDialogForNote = voiceNote2 })
                                 } else {
                                     Text(
                                         text = textNote2?.content?.ifBlank { "No content" } ?: "",
@@ -2295,6 +2320,7 @@ fun PinnedVoiceNotePlayer(
     note: VoiceNote,
     driveViewModel: DriveViewModel,
     libraryViewModel: LibraryViewModel,
+    isOnline: Boolean,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -2334,7 +2360,17 @@ fun PinnedVoiceNotePlayer(
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(Cyan500.copy(alpha = 0.2f))
-                .clickable { onClick() },
+                .clickable { 
+                    if (!fileExists && note.driveFileId != null && !isDownloading) {
+                        if (!isOnline) {
+                            android.widget.Toast.makeText(context, "Please connect to internet to open this file", android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            onClick()
+                        }
+                    } else {
+                        onClick()
+                    }
+                },
             contentAlignment = Alignment.Center
         ) {
             if (isDownloading) {
