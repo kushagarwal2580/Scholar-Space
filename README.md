@@ -1,5 +1,4 @@
-<div align="center">
-  <img src="assets/logo.svg" width="150" height="150" alt="Scholar Space Logo" />
+
   
 # Scholar Space
 </div>
