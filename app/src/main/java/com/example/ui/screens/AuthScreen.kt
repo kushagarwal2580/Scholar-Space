@@ -95,7 +95,7 @@ fun AuthScreen(authViewModel: AuthViewModel) {
                 painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
                 contentDescription = "App Logo",
                 modifier = Modifier.size(80.dp),
-                tint = com.example.ui.theme.Cyan400
+                tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

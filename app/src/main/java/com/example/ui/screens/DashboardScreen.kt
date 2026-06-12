@@ -585,16 +585,17 @@ fun DashboardScreen(
                             .size(40.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                            Brush.linearGradient(
-                                colors = listOf(Cyan400, Cyan300)
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(Color(0xFF0F172A), Color(0xFF1E1B4B))
                             )
                         ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.School,
-                            contentDescription = "App Icon",
-                            tint = Color.White
+                            painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_launcher_foreground),
+                            contentDescription = "App Logo",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(56.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
