@@ -1,7 +1,6 @@
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="150" height="150" alt="Scholar Space Logo" />
   
-  # Scholar Space
+# Scholar Space
 </div>
 
 A comprehensive study companion that helps you organize your materials, track study sessions, securely sync your learning data to Google Drive, and access a variety of media formats right from your device.
