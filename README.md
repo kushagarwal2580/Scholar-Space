@@ -1,12 +1,18 @@
-# Scholar Space
+<div align="center">
+  <img src="app/src/main/ic_launcher-playstore.png" width="150" height="150" alt="Scholar Space Logo" onError="this.style.display='none'"/>
+  
+  # Scholar Space
+</div>
 
-A comprehensive study companion that helps you organize your materials, track study sessions with timers and stopwatches, and securely sync your learning data to Google Drive.
+A comprehensive study companion that helps you organize your materials, track study sessions, securely sync your learning data to Google Drive, and access a variety of media formats right from your device.
 
-## Features
-- **Study Timers**: Track your study sessions with built-in timers and stopwatches.
-- **Drive Sync**: Securely sync your learning data to Google Drive.
-- **Material Organization**: Keep your study materials organized.
+## ✨ Key Features
+- **Cloud Synchronization**: Securely backup and sync your library, profile, and app state to Google Drive to seamlessly switch between devices.
+- **Study Timers & Stopwatches**: Track your study sessions accurately. Includes persistent background notifications so you always know how long you've been working.
+- **Material Library**: Keep your study materials organized. Easily manage course notes, textbooks, and audio recordings.
+- **Built-in File Viewer**: View your PDFs and listen to audio recordings directly within the app without needing third-party viewers.
+- **Profile Management**: Customize your student profile with notes and statuses.
 
-## Requirements
-- Android Device (Minimum Android 8.0/SDK 26)
-- Google Account (for Drive Sync)
+## 📱 Requirements
+- **Android Device**: Minimum OS Android 8.0 / API Level 26
+- **Google Account**: Required for Drive Sync and Authentication features
