@@ -594,6 +594,7 @@ fun CalendarScreen(
 
     if (showAddTimerDialog) {
         var timerError by remember { mutableStateOf<String?>(null) }
+        var timerTitleError by remember { mutableStateOf<String?>(null) }
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { showAddTimerDialog = false },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
@@ -619,8 +620,13 @@ fun CalendarScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         OutlinedTextField(
                             value = newTimerTitle,
-                            onValueChange = { newTimerTitle = it },
-                            label = { Text("Timer Title (Optional)") },
+                            onValueChange = { 
+                                newTimerTitle = it
+                                timerTitleError = null
+                            },
+                            label = { Text("Timer Title") },
+                            isError = timerTitleError != null,
+                            supportingText = { if (timerTitleError != null) Text(timerTitleError!!) },
                             singleLine = true,
                             textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.onSurface),
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
@@ -688,7 +694,9 @@ fun CalendarScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             TextButton(onClick = {
                                 val totalSeconds = newTimerHours * 3600 + newTimerMinutes * 60 + newTimerSeconds
-                                if (totalSeconds <= 0) {
+                                if (newTimerTitle.trim().isEmpty()) {
+                                    timerTitleError = "Title is mandatory"
+                                } else if (totalSeconds <= 0) {
                                     timerError = "Timer duration must be greater than 0"
                                 } else {
                                     libraryViewModel.addTimer(newTimerTitle, newTimerHours, newTimerMinutes, newTimerSeconds)
@@ -697,6 +705,8 @@ fun CalendarScreen(
                                     newTimerHours = 0
                                     newTimerMinutes = 25
                                     newTimerSeconds = 0
+                                    timerError = null
+                                    timerTitleError = null
                                 }
                             }) {
                                 Text("Add", color = Cyan400)

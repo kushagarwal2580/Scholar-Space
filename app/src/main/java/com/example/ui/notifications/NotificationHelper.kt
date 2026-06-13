@@ -11,6 +11,26 @@ object NotificationHelper {
     const val CHANNEL_ID_TIMER = "timers_v4"
     const val CHANNEL_ID_STOPWATCH = "stopwatches_v4"
 
+    private fun getBitmapFromVector(context: Context, drawableId: Int): android.graphics.Bitmap? {
+        try {
+            val drawable = androidx.core.content.ContextCompat.getDrawable(context, drawableId) ?: return null
+            if (drawable is android.graphics.drawable.BitmapDrawable) {
+                return drawable.bitmap
+            }
+            val bitmap = android.graphics.Bitmap.createBitmap(
+                drawable.intrinsicWidth.takeIf { it > 0 } ?: 108,
+                drawable.intrinsicHeight.takeIf { it > 0 } ?: 108,
+                android.graphics.Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            return bitmap
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -81,14 +101,10 @@ object NotificationHelper {
             remoteViews.setTextViewText(R.id.notification_time, timeStr)
         }
 
-        val largeIcon = try {
-            android.graphics.BitmapFactory.decodeResource(context.resources, com.example.R.mipmap.ic_launcher)
-        } catch (e: Exception) {
-            null
-        }
+        val largeIcon = getBitmapFromVector(context, com.example.R.mipmap.ic_launcher)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID_STOPWATCH)
-            .setSmallIcon(com.example.R.drawable.ic_notification)
+            .setSmallIcon(com.example.R.drawable.ic_stat_logo)
             .setContentTitle(nameText)
             .setContentText(if (item.isRunning) "Running: $timeStr" else "Paused: $timeStr")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -181,14 +197,10 @@ object NotificationHelper {
             remoteViews.setTextViewText(R.id.notification_time, timeStr)
         }
 
-        val largeIcon = try {
-            android.graphics.BitmapFactory.decodeResource(context.resources, com.example.R.mipmap.ic_launcher)
-        } catch (e: Exception) {
-            null
-        }
+        val largeIcon = getBitmapFromVector(context, com.example.R.mipmap.ic_launcher)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID_TIMER)
-            .setSmallIcon(com.example.R.drawable.ic_notification)
+            .setSmallIcon(com.example.R.drawable.ic_stat_logo)
             .setContentTitle(nameText)
             .setContentText(if (remaining <= 0) "Time's up!" else "$timeStr remaining")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -261,14 +273,10 @@ object NotificationHelper {
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
             )
             
-            val largeIcon = try {
-                android.graphics.BitmapFactory.decodeResource(context.resources, com.example.R.mipmap.ic_launcher)
-            } catch (e: Exception) {
-                null
-            }
+            val largeIcon = getBitmapFromVector(context, com.example.R.mipmap.ic_launcher)
             
             val builder = NotificationCompat.Builder(context, com.example.services.ActiveTimersService.CHANNEL_ID)
-                .setSmallIcon(com.example.R.drawable.ic_notification)
+                .setSmallIcon(com.example.R.drawable.ic_stat_logo)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -315,14 +323,10 @@ object NotificationHelper {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
-        val largeIcon = try {
-            android.graphics.BitmapFactory.decodeResource(app.resources, com.example.R.mipmap.ic_launcher)
-        } catch (e: Exception) {
-            null
-        }
+        val largeIcon = getBitmapFromVector(app, com.example.R.mipmap.ic_launcher)
 
         val builder = NotificationCompat.Builder(app, "reminders_v4")
-            .setSmallIcon(com.example.R.drawable.ic_notification)
+            .setSmallIcon(com.example.R.drawable.ic_stat_logo)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))

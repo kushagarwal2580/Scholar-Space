@@ -63,7 +63,7 @@ class ActiveTimersService : Service() {
             ?: NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Scholar Space")
                 .setContentText("Active timers are running")
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.ic_stat_logo)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -303,24 +303,13 @@ class ActiveTimersService : Service() {
         serviceJob.cancel()
         
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val pausedNotification = com.example.ui.notifications.NotificationHelper.getActiveTimersNotification(this)
-        
-        if (pausedNotification != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_DETACH)
-            } else {
-                @Suppress("DEPRECATION")
-                stopForeground(false)
-            }
-            manager.notify(NOTIFICATION_ID, pausedNotification)
+        manager.cancel(NOTIFICATION_ID)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
-            manager.cancel(NOTIFICATION_ID)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            } else {
-                @Suppress("DEPRECATION")
-                stopForeground(true)
-            }
+            @Suppress("DEPRECATION")
+            stopForeground(true)
         }
     }
 

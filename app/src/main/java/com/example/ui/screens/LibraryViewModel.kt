@@ -629,10 +629,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         } else {
-            if (com.example.services.ActiveTimersService.isServiceRunning) {
-                val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
-                app.stopService(serviceIntent)
-            }
+            val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
+            app.stopService(serviceIntent)
+            com.example.ui.notifications.NotificationHelper.cancelNotification(app, com.example.services.ActiveTimersService.NOTIFICATION_ID)
         }
     }
 
