@@ -97,7 +97,7 @@ fun UpdateDialog(
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Cyan400,
-                            contentColor = Color.Black
+                            contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -119,7 +119,7 @@ fun UpdateDialog(
                     ) {
                         Text(
                             text = "Later",
-                            color = textColor.copy(alpha = 0.6f),
+                            color = Cyan400,
                             fontWeight = FontWeight.Medium
                         )
                     }

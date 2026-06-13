@@ -275,19 +275,30 @@ class MainActivity : ComponentActivity() {
                 var showUpdateDialog by androidx.compose.runtime.remember { mutableStateOf(false) }
                 var updateUrl by androidx.compose.runtime.remember { mutableStateOf("") }
                 var updateVersionName by androidx.compose.runtime.remember { mutableStateOf("") }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val sharedPreferences = androidx.compose.runtime.remember {
+                    context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                }
                 
                 LaunchedEffect(splashFinished, authState) {
                     if (splashFinished && authState is AuthState.Success) {
-                        val updateInfo = com.example.utils.UpdateChecker.checkForUpdates(
-                            githubOwner = "kushagarwal2580", // Replace with Github Username
-                            githubRepo = "Scholar-Space", // Replace with Github Repository Name
-                            currentVersion = com.example.BuildConfig.VERSION_NAME
-                        )
+                        var launchCount = sharedPreferences.getInt("update_launch_count", 3) // Defaults to 3 so it shows first time
                         
-                        if (updateInfo != null && updateInfo.isUpdateAvailable) {
-                            updateUrl = updateInfo.downloadUrl
-                            updateVersionName = updateInfo.latestVersion
-                            showUpdateDialog = true
+                        if (launchCount >= 3) {
+                            val updateInfo = com.example.utils.UpdateChecker.checkForUpdates(
+                                githubOwner = "kushagarwal2580", // Replace with Github Username
+                                githubRepo = "Scholar-Space", // Replace with Github Repository Name
+                                currentVersion = com.example.BuildConfig.VERSION_NAME
+                            )
+                            
+                            if (updateInfo != null && updateInfo.isUpdateAvailable) {
+                                updateUrl = updateInfo.downloadUrl
+                                updateVersionName = updateInfo.latestVersion
+                                showUpdateDialog = true
+                            }
+                        } else {
+                            // Only increment when we don't show the dialog
+                            sharedPreferences.edit().putInt("update_launch_count", launchCount + 1).apply()
                         }
                     }
                 }
@@ -295,7 +306,10 @@ class MainActivity : ComponentActivity() {
                 if (showUpdateDialog) {
                     com.example.ui.components.UpdateDialog(
                         showDialog = showUpdateDialog,
-                        onDismiss = { showUpdateDialog = false },
+                        onDismiss = {
+                            showUpdateDialog = false
+                            sharedPreferences.edit().putInt("update_launch_count", 0).apply() // Reset timer when dismissed
+                        },
                         updateUrl = updateUrl,
                         versionName = updateVersionName
                     )
