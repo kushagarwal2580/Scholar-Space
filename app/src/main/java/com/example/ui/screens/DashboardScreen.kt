@@ -2040,7 +2040,7 @@ fun BottomNavBar(
     onTabSelected: (String) -> Unit,
     onAddClick: () -> Unit
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = true
     val bgColor = if (isDark) {
         Color(0xFF0F172A).copy(alpha = 0.35f) // Slate 900 highly translucent
     } else {
@@ -2064,7 +2064,12 @@ fun BottomNavBar(
                 .fillMaxWidth()
                 .height(64.dp)
                 .background(
-                    color = bgColor,
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            bgColor.copy(alpha = 0.4f),
+                            bgColor.copy(alpha = 0.85f)
+                        )
+                    ),
                     shape = RoundedCornerShape(32.dp)
                 )
                 .border(

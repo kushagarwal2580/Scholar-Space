@@ -239,12 +239,12 @@ class ActiveTimersService : Service() {
                 prefs.edit().putString("app_state", json.encodeToString(updatedData)).apply()
             }
             
-            // 4. Update individual notifications for ALL stopwatches & timers
-            updatedTimers.forEach {
-                com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, it)
-            }
-            updatedStopwatches.forEach {
-                com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(this, it)
+            // 4. Update individual notifications ONLY if they reached zero
+            updatedTimers.forEach { newTimer ->
+                val oldTimer = data.timers.find { it.id == newTimer.id }
+                if (oldTimer != null && oldTimer.isRunning && !newTimer.isRunning && newTimer.timeRemaining <= 0) {
+                    com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, newTimer)
+                }
             }
             
             // Determine if there is any active item still running

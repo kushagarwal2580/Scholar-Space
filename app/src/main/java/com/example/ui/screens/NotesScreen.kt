@@ -826,7 +826,7 @@ fun NoteCard(
     onLongClick: () -> Unit = {},
     onDeleteClick: () -> Unit
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = true
     val context = LocalContext.current
     var showCardMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }

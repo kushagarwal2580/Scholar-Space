@@ -84,7 +84,7 @@ fun AuthScreen(authViewModel: AuthViewModel) {
 
     GlassBackground(
         modifier = Modifier.fillMaxSize(),
-        drawBackgroundAndCircles = true
+        drawBackgroundAndCircles = false
     ) {
         Column(
             modifier = Modifier
@@ -205,7 +205,7 @@ fun AuthScreen(authViewModel: AuthViewModel) {
 
 @Composable
 fun LoginSplashScreen() {
-    GlassBackground(
+    com.example.ui.components.GlassBackground(
         modifier = Modifier.fillMaxSize(),
         drawBackgroundAndCircles = true
     ) {

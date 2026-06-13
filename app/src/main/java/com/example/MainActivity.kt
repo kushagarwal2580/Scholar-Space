@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
@@ -257,7 +258,7 @@ class MainActivity : ComponentActivity() {
                 var minTimeElapsed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(3000)
+                    kotlinx.coroutines.delay(2000)
                     minTimeElapsed = true
                 }
                 
@@ -267,84 +268,56 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val isSlidingUp = hasStartedDismissal
-
-                // Splash screen translation animation upwards (slides out of view)
-                val splashSlideOffsetFraction by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = if (isSlidingUp) -1f else 0f,
-                    animationSpec = androidx.compose.animation.core.tween(
-                        durationMillis = 1000,
-                        easing = androidx.compose.animation.core.FastOutSlowInEasing
-                    ),
-                    finishedListener = {
-                        if (it == -1f) {
-                            splashFinished = true
+                // Syncing Screen Animation State
+                var showSyncScreen by androidx.compose.runtime.remember { mutableStateOf(true) }
+                
+                // GitHub Update Check State
+                var showUpdateDialog by androidx.compose.runtime.remember { mutableStateOf(false) }
+                var updateUrl by androidx.compose.runtime.remember { mutableStateOf("") }
+                var updateVersionName by androidx.compose.runtime.remember { mutableStateOf("") }
+                
+                LaunchedEffect(splashFinished, authState) {
+                    if (splashFinished && authState is AuthState.Success) {
+                        val updateInfo = com.example.utils.UpdateChecker.checkForUpdates(
+                            githubOwner = "kushagarwal2580", // Replace with Github Username
+                            githubRepo = "Scholar-Space", // Replace with Github Repository Name
+                            currentVersion = com.example.BuildConfig.VERSION_NAME
+                        )
+                        
+                        if (updateInfo != null && updateInfo.isUpdateAvailable) {
+                            updateUrl = updateInfo.downloadUrl
+                            updateVersionName = updateInfo.latestVersion
+                            showUpdateDialog = true
                         }
                     }
-                )
-
-                // Dashboard enters from behind with a smooth scale-up & fade-in animation
-                val dashboardScale by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = 1f, // Removed scale animation completely to prevent edge blinking
-                    animationSpec = androidx.compose.animation.core.tween(
-                        durationMillis = 1000,
-                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                }
+                
+                if (showUpdateDialog) {
+                    com.example.ui.components.UpdateDialog(
+                        showDialog = showUpdateDialog,
+                        onDismiss = { showUpdateDialog = false },
+                        updateUrl = updateUrl,
+                        versionName = updateVersionName
                     )
-                )
+                }
 
-                val dashboardAlpha by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = if (isSlidingUp) 1f else 0f,
-                    animationSpec = androidx.compose.animation.core.tween(
-                        durationMillis = 700,
-                        easing = androidx.compose.animation.core.LinearOutSlowInEasing
-                    )
-                )
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    if (splashFinished) {
-                        // Standard view layout once splash has fully completed & slid away
+                com.example.ui.components.GlassBackground(
+                    modifier = Modifier.fillMaxSize(),
+                    drawBackgroundAndCircles = true
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         if (authState !is AuthState.Success) {
-                            com.example.ui.screens.AuthScreen(authViewModel = authViewModel)
-                        } else {
-                            MainAppContent(
-                                currentTab = currentTab,
-                                isImeVisible = isImeVisible,
-                                viewingItem = viewingItem,
-                                authViewModel = authViewModel,
-                                libraryViewModel = libraryViewModel,
-                                driveViewModel = driveViewModel,
-                                activity = this@MainActivity
-                            )
-
-                            // Syncing Screen Overlay with slide-up out animation
-                            var hideSyncingByAnimation by remember { mutableStateOf(false) }
-                            val syncSlideOffset by androidx.compose.animation.core.animateFloatAsState(
-                                targetValue = if (hideSyncingByAnimation) -1f else 0f,
-                                animationSpec = androidx.compose.animation.core.tween(1000, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                                finishedListener = { if (it == -1f) authViewModel.setSyncing(false) }
-                            )
-
-                            if (isSyncing) {
-                                Box(modifier = Modifier.fillMaxSize().graphicsLayer { translationY = syncSlideOffset * size.height }) {
-                                    com.example.ui.screens.SyncingScreen(
-                                        onFinished = {
-                                            hideSyncingByAnimation = true
-                                        }
-                                    )
+                            // Not logged in or loading
+                            if (hasStartedDismissal || (minTimeElapsed && authState !is AuthState.Loading)) {
+                                androidx.compose.animation.Crossfade(targetState = true) { _ ->
+                                    com.example.ui.screens.AuthScreen(authViewModel = authViewModel)
                                 }
                             }
-                        }
-                    } else {
-                        // Draw the dashboard behind the splash screen only when successfully authenticated
-                        if (authState is AuthState.Success) {
+                        } else {
+                            // User is successfully authenticated
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .graphicsLayer {
-                                        alpha = dashboardAlpha
-                                        scaleX = dashboardScale
-                                        scaleY = dashboardScale
-                                    }
                             ) {
                                 MainAppContent(
                                     currentTab = currentTab,
@@ -356,30 +329,76 @@ class MainActivity : ComponentActivity() {
                                     activity = this@MainActivity
                                 )
 
+                                // Syncing Screen Overlay with slide-up out animation
                                 if (isSyncing) {
-                                    com.example.ui.screens.SyncingScreen(
-                                        onFinished = {
-                                            authViewModel.setSyncing(false)
+                                    var syncFinished by androidx.compose.runtime.remember { mutableStateOf(false) }
+                                    val syncOffset by androidx.compose.animation.core.animateFloatAsState(
+                                        targetValue = if (!showSyncScreen) -1f else 0f,
+                                        animationSpec = androidx.compose.animation.core.tween(
+                                            durationMillis = 1500,
+                                            easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                                        ),
+                                        label = "syncOffset",
+                                        finishedListener = { 
+                                            if (it == -1f) {
+                                                syncFinished = true
+                                                authViewModel.setSyncing(false)
+                                            }
                                         }
                                     )
-                                }
-                            }
-                        } else {
-                            // If user is not logged in and min time has passed, transition to the sign-in screen
-                            if (minTimeElapsed && authState !is AuthState.Loading) {
-                                androidx.compose.animation.Crossfade(targetState = true) { _ ->
-                                    com.example.ui.screens.AuthScreen(authViewModel = authViewModel)
+                                    val syncAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                        targetValue = if (!showSyncScreen) 0f else 1f,
+                                        animationSpec = androidx.compose.animation.core.tween(500),
+                                        label = "syncAlpha"
+                                    )
+
+                                    if (!syncFinished) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    translationY = syncOffset * size.height
+                                                    alpha = syncAlpha
+                                                }
+                                        ) {
+                                            com.example.ui.screens.SyncingScreen(
+                                                onFinished = {
+                                                    if (hasStartedDismissal) {
+                                                        showSyncScreen = false
+                                                    } else {
+                                                        authViewModel.setSyncing(false)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
 
                         // Overlay the beautiful, animated Splash Screen
-                        if (splashSlideOffsetFraction > -1f) {
+                        val splashOffset by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (hasStartedDismissal) -1f else 0f,
+                            animationSpec = androidx.compose.animation.core.tween(
+                                durationMillis = 1500,
+                                easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                            ),
+                            label = "splashOffset",
+                            finishedListener = { if (it == -1f) splashFinished = true }
+                        )
+                        val splashAlpha by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (hasStartedDismissal) 0f else 1f,
+                            animationSpec = androidx.compose.animation.core.tween(500),
+                            label = "splashAlpha"
+                        )
+
+                        if (!splashFinished) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .graphicsLayer {
-                                        translationY = splashSlideOffsetFraction * size.height
+                                        translationY = splashOffset * size.height
+                                        alpha = splashAlpha
                                     }
                             ) {
                                 ScholarSpaceSplashScreen()
@@ -522,7 +541,8 @@ private fun MainAppContent(
     activity: MainActivity
 ) {
     com.example.ui.components.GlassBackground(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        drawBackgroundAndCircles = true
     ) {
         val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
         val isEditingNote by libraryViewModel.isEditingNote.collectAsState()
@@ -627,11 +647,23 @@ private fun MainAppContent(
 
                 val isSearchActive by libraryViewModel.isSearchActive.collectAsState()
                 if (!isImeVisible && !isEditingNote && currentTab != "settings" && !isSearchActive) {
+                    val isDark = true
+                    val bottomBgColor = if (isDark) androidx.compose.ui.graphics.Color(0xFF0F172A) else androidx.compose.ui.graphics.Color(0xFFF8FAFC)
                     androidx.compose.foundation.layout.Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(
+                                        androidx.compose.ui.graphics.Color.Transparent,
+                                        bottomBgColor.copy(alpha = 0.8f),
+                                        bottomBgColor
+                                    )
+                                )
+                            )
                             .navigationBarsPadding()
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = 16.dp, top = 32.dp)
                             .padding(horizontal = 16.dp)
                     ) {
                         com.example.ui.screens.BottomNavBar(
@@ -719,10 +751,10 @@ private fun ScholarSpaceSplashScreen() {
             contentAlignment = Alignment.Center
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-                modifier = Modifier.padding(24.dp)
-            ) {
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            modifier = Modifier.padding(24.dp)
+        ) {
                 // App Logo with pulse & pop enter
                 Box(
                     modifier = Modifier
@@ -803,4 +835,3 @@ private fun ScholarSpaceSplashScreen() {
         }
     }
 }
-

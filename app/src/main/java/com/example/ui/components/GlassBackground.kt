@@ -19,7 +19,7 @@ fun GlassBackground(
     drawBackgroundAndCircles: Boolean = true,
     content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = true
     
     if (drawBackgroundAndCircles) {
         val bgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)

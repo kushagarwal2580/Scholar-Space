@@ -47,14 +47,14 @@ fun SyncingScreen(onFinished: () -> Unit) {
     }
 
     com.example.ui.components.GlassBackground(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        drawBackgroundAndCircles = true
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -108,6 +108,6 @@ fun SyncingScreen(onFinished: () -> Unit) {
                 fontSize = 14.sp
             )
         }
-        }
     }
+}
 }
