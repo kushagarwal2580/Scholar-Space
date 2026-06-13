@@ -1545,16 +1545,6 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(32.dp))
-                                .border(
-                                    1.dp,
-                                    androidx.compose.ui.graphics.Brush.linearGradient(
-                                        colors = listOf(
-                                            Color.White.copy(alpha = 0.4f),
-                                            Color.White.copy(alpha = 0.1f)
-                                        )
-                                    ),
-                                    RoundedCornerShape(32.dp)
-                                )
                         ) {
                             Column(
                                 modifier = Modifier
@@ -1866,16 +1856,6 @@ fun DashboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(32.dp))
-                            .border(
-                                1.dp,
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.4f),
-                                        Color.White.copy(alpha = 0.1f)
-                                    )
-                                ),
-                                RoundedCornerShape(32.dp)
-                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -2062,9 +2042,9 @@ fun BottomNavBar(
 ) {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val bgColor = if (isDark) {
-        Color(0xFF0F172A).copy(alpha = 0.72f) // Slate 900 translucent
+        Color(0xFF0F172A).copy(alpha = 0.35f) // Slate 900 highly translucent
     } else {
-        Color(0xFFFFFFFF).copy(alpha = 0.82f) // Pure white translucent
+        Color(0xFFFFFFFF).copy(alpha = 0.45f) // Pure white highly translucent
     }
     val borderColor = if (isDark) {
         Color.White.copy(alpha = 0.12f)
@@ -2075,7 +2055,6 @@ fun BottomNavBar(
     androidx.compose.foundation.layout.Box(
         modifier = Modifier
             .graphicsLayer {
-                shadowElevation = 8f
                 shape = RoundedCornerShape(32.dp)
                 clip = true
             }
@@ -2616,16 +2595,6 @@ fun AudioPlayDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(32.dp))
-                    .border(
-                        1.dp,
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.4f),
-                                Color.White.copy(alpha = 0.1f)
-                            )
-                        ),
-                        RoundedCornerShape(32.dp)
-                    )
             ) {
                 Column(
                     modifier = Modifier

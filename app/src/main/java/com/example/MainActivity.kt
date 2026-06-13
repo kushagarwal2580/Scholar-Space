@@ -285,7 +285,7 @@ class MainActivity : ComponentActivity() {
 
                 // Dashboard enters from behind with a smooth scale-up & fade-in animation
                 val dashboardScale by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = if (isSlidingUp) 1f else 0.94f,
+                    targetValue = 1f, // Removed scale animation completely to prevent edge blinking
                     animationSpec = androidx.compose.animation.core.tween(
                         durationMillis = 1000,
                         easing = androidx.compose.animation.core.FastOutSlowInEasing

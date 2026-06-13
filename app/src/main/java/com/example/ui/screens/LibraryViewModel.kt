@@ -185,6 +185,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         if (_currentTab.value == "calendar") {
             clearStaticNotifications()
         }
+        
+        updateActiveTimersService()
     }
 
     fun onAppPause() {
@@ -203,6 +205,14 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(app, it)
             }
         }
+        
+        try {
+            com.example.ui.notifications.NotificationReceiver.scheduleNextAlarm(app)
+        } catch (e: Exception) {
+            android.util.Log.e("LibraryViewModel", "Failed to schedule background reminder alarm on pause", e)
+        }
+        
+        updateActiveTimersService()
     }
 
     fun getAppStateData(): AppStateData {
@@ -604,23 +614,25 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         _hasAcknowledgedBackgroundRun.value = true
     }
 
-    private var isActiveTimersServiceRunning = false
-
     private fun updateActiveTimersService() {
-        val hasRunningTimer = _timers.value.any { it.isRunning && it.timeRemaining > 0 } || _stopwatches.value.any { it.isRunning }
+        val hasRunning = _timers.value.any { it.isRunning && it.timeRemaining > 0 } || _stopwatches.value.any { it.isRunning }
         val app = getApplication<Application>()
-        if (hasRunningTimer && !isActiveTimersServiceRunning) {
-            val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                app.startForegroundService(serviceIntent)
-            } else {
-                app.startService(serviceIntent)
+        val shouldServiceRun = hasRunning && !isAppInForeground
+        
+        if (shouldServiceRun) {
+            if (!com.example.services.ActiveTimersService.isServiceRunning) {
+                val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    app.startForegroundService(serviceIntent)
+                } else {
+                    app.startService(serviceIntent)
+                }
             }
-            isActiveTimersServiceRunning = true
-        } else if (!hasRunningTimer && isActiveTimersServiceRunning) {
-            val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
-            app.stopService(serviceIntent)
-            isActiveTimersServiceRunning = false
+        } else {
+            if (com.example.services.ActiveTimersService.isServiceRunning) {
+                val serviceIntent = android.content.Intent(app, com.example.services.ActiveTimersService::class.java)
+                app.stopService(serviceIntent)
+            }
         }
     }
 
@@ -844,6 +856,11 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 tickTimers()
             }
         }
+        try {
+            com.example.ui.notifications.NotificationReceiver.scheduleNextAlarm(application)
+        } catch (e: Exception) {
+            android.util.Log.e("LibraryViewModel", "Failed to schedule background reminder alarm", e)
+        }
     }
 
     override fun onCleared() {
@@ -901,6 +918,11 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             )
             prefs.edit().putString("app_state", json.encodeToString(data)).apply()
             onStateChangedListener?.invoke()
+            try {
+                com.example.ui.notifications.NotificationReceiver.scheduleNextAlarm(getApplication())
+            } catch (ex: Exception) {
+                android.util.Log.e("LibraryViewModel", "Error rescheduling alarm on save", ex)
+            }
         } catch (e: Exception) {
             android.util.Log.e("LibraryViewModel", "Error saving data", e)
         }
@@ -1075,6 +1097,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private var lastReminderCheckTime = 0L
 
     fun tickTimers() {
+        if (!isAppInForeground && com.example.services.ActiveTimersService.isServiceRunning) {
+            return
+        }
         var completedTimer = false
         _timers.value = _timers.value.map {
             if (it.isRunning && it.timeRemaining > 0) {
@@ -1130,40 +1155,51 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
         val zoneId = java.time.ZoneId.systemDefault()
         val now = java.time.ZonedDateTime.now(zoneId)
-        val todayMillis = now.toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli().toString()
 
         var reminderChanged = false
         val newReminders = _allReminders.value.toMutableMap()
         
-        val todayReminders = newReminders[todayMillis]?.map { reminder ->
-            if (!reminder.isNotified) {
-                try {
-                    val parts = reminder.time.split(" ")
-                    if (parts.size == 2) {
-                        val timeParts = parts[0].split(":")
-                        if (timeParts.size == 2) {
-                            var hour = timeParts[0].toIntOrNull() ?: 0
-                            val minute = timeParts[1].toIntOrNull() ?: 0
-                            if (parts[1].uppercase(java.util.Locale.US) == "PM" && hour < 12) hour += 12
-                            if (parts[1].uppercase(java.util.Locale.US) == "AM" && hour == 12) hour = 0
-                            val reminderTime = java.time.LocalTime.of(hour, minute)
-                            
-                            if (now.toLocalTime().isAfter(reminderTime) || now.toLocalTime() == reminderTime) {
-                                showNotification("Reminder", reminder.text)
-                                reminderChanged = true
-                                return@map reminder.copy(isNotified = true)
+        _allReminders.value.forEach { (dateKey, remindersList) ->
+            val dateMillis = dateKey.toLongOrNull()
+            if (dateMillis != null) {
+                val localDate = java.time.Instant.ofEpochMilli(dateMillis)
+                    .atZone(java.time.ZoneOffset.UTC)
+                    .toLocalDate()
+                
+                val updatedList = remindersList.map { reminder ->
+                    if (!reminder.isNotified) {
+                        try {
+                            val parts = reminder.time.split(" ")
+                            if (parts.size == 2) {
+                                val timeParts = parts[0].split(":")
+                                if (timeParts.size == 2) {
+                                    var hour = timeParts[0].toIntOrNull() ?: 0
+                                    val minute = timeParts[1].toIntOrNull() ?: 0
+                                    if (parts[1].uppercase(java.util.Locale.US) == "PM" && hour < 12) hour += 12
+                                    if (parts[1].uppercase(java.util.Locale.US) == "AM" && hour == 12) hour = 0
+                                    
+                                    val scheduledDateTime = localDate.atTime(hour, minute).atZone(zoneId)
+                                    if (!now.isBefore(scheduledDateTime)) {
+                                        showNotification("Reminder", reminder.text)
+                                        reminderChanged = true
+                                        return@map reminder.copy(isNotified = true)
+                                    }
+                                }
                             }
+                        } catch (e: Exception) {
+                            android.util.Log.e("LibraryViewModel", "Error parsing reminder time", e)
                         }
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e("LibraryViewModel", "Error parsing reminder time", e)
+                    reminder
+                }
+                if (updatedList != remindersList) {
+                    newReminders[dateKey] = updatedList
+                    reminderChanged = true
                 }
             }
-            reminder
         }
         
-        if (reminderChanged && todayReminders != null) {
-            newReminders[todayMillis] = todayReminders
+        if (reminderChanged) {
             _allReminders.value = newReminders
             saveData()
         }
@@ -1197,51 +1233,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     private fun showNotification(title: String, message: String) {
         val app = getApplication<Application>()
-        val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel("reminders", "Reminders", android.app.NotificationManager.IMPORTANCE_HIGH)
-            manager.createNotificationChannel(channel)
-        }
-        
-        val largeIcon = try {
-            android.graphics.BitmapFactory.decodeResource(app.resources, com.example.R.mipmap.ic_launcher)
-        } catch (e: Exception) {
-            null
-        }
-
-        val intent = android.content.Intent(app, com.example.MainActivity::class.java).apply {
-            action = "com.example.ACTION_OPEN_CALENDAR"
-            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = android.app.PendingIntent.getActivity(
-            app, 
-            0, 
-            intent, 
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = androidx.core.app.NotificationCompat.Builder(app, "reminders")
-            .setSmallIcon(com.example.R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            
-        if (largeIcon != null) {
-            builder.setLargeIcon(largeIcon)
-        }
-        
-        val notificationId = when (title) {
-            "Day Counter" -> 30001
-            "Reminder" -> 30002
-            "Timer Complete" -> 30003
-            else -> (System.currentTimeMillis() % 10000).toInt()
-        }
-        
-        if (androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            manager.notify(notificationId, builder.build())
-        }
+        com.example.ui.notifications.NotificationHelper.showCustomNotification(app, title, message)
     }
 
     fun clearStaticNotifications() {

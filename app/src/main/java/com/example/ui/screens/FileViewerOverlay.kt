@@ -34,6 +34,7 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clipToBounds
@@ -78,10 +79,29 @@ fun FileViewerOverlay(
         }
     }
 
-    val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val safeTopPadding = if (statusBarHeight > 0.dp) statusBarHeight else 40.dp
-    val topPadding = safeTopPadding + 64.dp
-    val bottomPadding = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 96.dp
+    val currentStatusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    var savedStatusBarHeight by remember { mutableStateOf(40.dp) }
+    val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    
+    LaunchedEffect(currentStatusBarHeight, isLandscape) {
+        if (currentStatusBarHeight > 0.dp) {
+            savedStatusBarHeight = currentStatusBarHeight
+        } else if (isLandscape) {
+            savedStatusBarHeight = 0.dp
+        }
+    }
+    
+    val currentNavBarHeight = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    var savedNavBarHeight by remember { mutableStateOf(0.dp) }
+    
+    LaunchedEffect(currentNavBarHeight, isLandscape) {
+        if (currentNavBarHeight > 0.dp) {
+            savedNavBarHeight = currentNavBarHeight
+        }
+    }
+
+    val topPadding = savedStatusBarHeight + 64.dp
+    val bottomPadding = savedNavBarHeight + 96.dp
 
     androidx.activity.compose.BackHandler(onBack = onClose)
 
@@ -223,7 +243,7 @@ fun FileViewerOverlay(
                                 .background(androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                                 ))
-                                .navigationBarsPadding()
+                                .padding(bottom = savedNavBarHeight)
                                 .padding(horizontal = 16.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -468,7 +488,7 @@ fun FileViewerOverlay(
                                 .background(androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                                 ))
-                                .navigationBarsPadding()
+                                .padding(bottom = savedNavBarHeight)
                                 .padding(horizontal = 16.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -685,7 +705,7 @@ fun FileViewerOverlay(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.Black.copy(alpha = 0.4f))
-                    .padding(top = safeTopPadding)
+                    .padding(top = savedStatusBarHeight)
                     .padding(horizontal = 4.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween

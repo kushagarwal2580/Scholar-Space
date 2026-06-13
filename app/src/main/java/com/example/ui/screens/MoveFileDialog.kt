@@ -81,16 +81,6 @@ fun MoveFileDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(32.dp))
-                    .border(
-                        1.dp,
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.4f),
-                                Color.White.copy(alpha = 0.1f)
-                            )
-                        ),
-                        RoundedCornerShape(32.dp)
-                    )
             ) {
                 Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
                     // Header
@@ -257,16 +247,6 @@ fun MoveFileDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(32.dp))
-                            .border(
-                                1.dp,
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.4f),
-                                        Color.White.copy(alpha = 0.1f)
-                                    )
-                                ),
-                                RoundedCornerShape(32.dp)
-                            )
                     ) {
                         Column(modifier = Modifier.padding(24.dp).fillMaxWidth()) {
                             Text(text = "New Folder", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)

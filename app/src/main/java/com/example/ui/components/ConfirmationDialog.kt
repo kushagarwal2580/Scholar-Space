@@ -40,16 +40,6 @@ fun ConfirmationDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(32.dp))
-                    .border(
-                        1.dp,
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.4f),
-                                Color.White.copy(alpha = 0.1f)
-                            )
-                        ),
-                        RoundedCornerShape(32.dp)
-                    )
             ) {
                 Column(
                     modifier = Modifier

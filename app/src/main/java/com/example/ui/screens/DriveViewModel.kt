@@ -65,6 +65,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
             _storageUsage.value = 0
             _storageLimit.value = 1
             _scholarSpaceFolderId.value = null
+            
+            // Clear last synced account when logging out
+            val prefs = context.getSharedPreferences("ScholarSpacePrefs", Context.MODE_PRIVATE)
+            prefs.edit().remove("last_synced_account").apply()
         }
     }
 
@@ -773,7 +777,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                             val syncData = json.decodeFromString(ScholarSpaceSyncData.serializer(), jsonString)
                             
                             val localLastModified = libraryViewModel.getLastModifiedLocally()
-                            if (syncData.appState.timestamp < localLastModified) {
+                            if (!isRelogin && syncData.appState.timestamp < localLastModified) {
                                 Log.i("DriveViewModel", "Local state is newer than Drive state, uploading instead")
                                 _isMetadataSyncing.value = false
                                 syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete = onComplete)

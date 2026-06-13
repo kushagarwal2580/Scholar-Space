@@ -22,11 +22,12 @@ fun GlassBackground(
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     
     if (drawBackgroundAndCircles) {
-        val bgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)
-        val circleColor1 = if (isDark) Indigo500.copy(alpha = 0.35f) else Indigo500.copy(alpha = 0.22f)
-        val circleColor2 = if (isDark) Cyan500.copy(alpha = 0.35f) else Cyan500.copy(alpha = 0.22f)
-        val circleColor3 = if (isDark) Color(0xFF9333EA).copy(alpha = 0.3f) else Color(0xFF9333EA).copy(alpha = 0.18f)
-        val circleColor4 = if (isDark) Color(0xFFEC4899).copy(alpha = 0.22f) else Color(0xFFEC4899).copy(alpha = 0.12f)
+        val bgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+        val circleColor1 = if (isDark) Color(0xFF6366F1).copy(alpha = 0.15f) else Color(0xFF6366F1).copy(alpha = 0.1f) // Indigo
+        val circleColor2 = if (isDark) Color(0xFFD946EF).copy(alpha = 0.15f) else Color(0xFFD946EF).copy(alpha = 0.08f) // Fuchsia
+        val circleColor3 = if (isDark) Color(0xFFA855F7).copy(alpha = 0.15f) else Color(0xFFA855F7).copy(alpha = 0.08f) // Purple
+        val circleColor4 = if (isDark) Color(0xFF0EA5E9).copy(alpha = 0.1f) else Color(0xFF0EA5E9).copy(alpha = 0.05f) // Sky Blue
+        val glowColor = if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.1f) else Color(0xFF8B5CF6).copy(alpha = 0.05f) // Violet
 
         Box(modifier = modifier.background(bgColor)) {
             Canvas(modifier = Modifier.matchParentSize()) {
@@ -34,48 +35,61 @@ fun GlassBackground(
                 val height = size.height
 
                 if (width > 0f && height > 0f) {
-                    // Top-Right Quadrant Color coverage
+                    val maxDim = maxOf(width, height)
+                    
+                    // Top-Right Indigo gradient
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(circleColor1, Color.Transparent),
                             center = Offset(width * 0.85f, height * 0.15f),
-                            radius = width * 0.9f
+                            radius = maxDim * 0.8f
                         ),
-                        radius = width * 0.9f,
+                        radius = maxDim * 0.8f,
                         center = Offset(width * 0.85f, height * 0.15f)
                     )
 
-                    // Top-Left/Mid-Left coverage
+                    // Top-Left Fuchsia gradient
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(circleColor2, Color.Transparent),
-                            center = Offset(width * 0.15f, height * 0.35f),
-                            radius = width * 0.8f
+                            center = Offset(width * 0.1f, height * 0.2f),
+                            radius = maxDim * 0.75f
                         ),
-                        radius = width * 0.8f,
-                        center = Offset(width * 0.15f, height * 0.35f)
+                        radius = maxDim * 0.75f,
+                        center = Offset(width * 0.1f, height * 0.2f)
                     )
 
-                    // Bottom-Right coverage
+                    // Bottom-Right Purple gradient
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(circleColor3, Color.Transparent),
-                            center = Offset(width * 0.8f, height * 0.8f),
-                            radius = width * 0.75f
+                            center = Offset(width * 0.85f, height * 0.85f),
+                            radius = maxDim * 0.85f
                         ),
-                        radius = width * 0.75f,
-                        center = Offset(width * 0.8f, height * 0.8f)
+                        radius = maxDim * 0.85f,
+                        center = Offset(width * 0.85f, height * 0.85f)
                     )
 
-                    // Bottom-Left/Mid-Right visual balance accent
+                    // Bottom-Left Sky Blue gradient
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(circleColor4, Color.Transparent),
-                            center = Offset(width * 0.2f, height * 0.75f),
-                            radius = width * 0.7f
+                            center = Offset(width * 0.15f, height * 0.8f),
+                            radius = maxDim * 0.7f
                         ),
-                        radius = width * 0.7f,
-                        center = Offset(width * 0.2f, height * 0.75f)
+                        radius = maxDim * 0.7f,
+                        center = Offset(width * 0.15f, height * 0.8f)
+                    )
+                    
+                    // Central Violet Ethereal Glow
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(glowColor, Color.Transparent),
+                            center = Offset(width * 0.5f, height * 0.5f),
+                            radius = maxDim * 0.65f
+                        ),
+                        radius = maxDim * 0.65f,
+                        center = Offset(width * 0.5f, height * 0.5f)
                     )
                 }
             }

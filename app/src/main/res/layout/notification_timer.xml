@@ -3,26 +3,36 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <TextView
         android:id="@+id/notification_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.Compat.Notification.Title" />
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+        android:textSize="20sp" />
 
     <Chronometer
         android:id="@+id/notification_chronometer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Time"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:layout_marginTop="4dp"
         android:visibility="gone" />
 
     <TextView
         android:id="@+id/notification_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Time"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:layout_marginTop="4dp"
         android:visibility="gone" />
 
 </LinearLayout>
