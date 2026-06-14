@@ -467,23 +467,26 @@ fun SettingsScreen(
                                 onClick = { 
                                     try {
                                         val bodyStr = """
-                                            Description:
-                                            
-                                            
                                             Device Info (Model, Android Version):
+                                            
+                                            
+                                            App Version:
+                                            
+                                            
+                                            Description:
                                             
                                             
                                             Upload Attachments:
                                             (Please attach any screenshots or screen recordings to this email)
                                         """.trimIndent()
                                         
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com") 
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            type = "message/rfc822"
                                             putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("app.scholarspace@gmail.com"))
-                                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Topic:")
+                                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Topic: ")
                                             putExtra(android.content.Intent.EXTRA_TEXT, bodyStr)
                                         }
-                                        context.startActivity(intent)
+                                        context.startActivity(android.content.Intent.createChooser(intent, "Send Feedback"))
                                     } catch (e: Exception) {
                                         android.widget.Toast.makeText(context, "No email app found.", android.widget.Toast.LENGTH_SHORT).show()
                                     }
