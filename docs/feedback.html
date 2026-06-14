@@ -131,6 +131,15 @@
         .back-link:hover {
             color: var(--text-main);
         }
+        /* Google Forms does not natively support dark mode via embeds, so we use a CSS filter trick */
+        .google-form-iframe {
+            border-radius: 12px;
+            background: transparent;
+            width: 100%;
+            height: 800px;
+            border: 0;
+            filter: invert(90%) hue-rotate(180deg) contrast(1.1);
+        }
     </style>
 </head>
 <body>
@@ -140,7 +149,7 @@
 
         <!-- Replace the src URL with your Google Form embed URL -->
         <div style="width: 100%; display: flex; justify-content: center; margin-top: 16px;">
-            <iframe src="YOUR_GOOGLE_FORM_EMBED_URL_HERE" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0" style="border-radius: 12px; background: transparent;">Loading…</iframe>
+            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe6siz_nr1AMRK3YeOiMfXgMDvMV8dI19xBakQFsKG544TyHQ/viewform?embedded=true" class="google-form-iframe" marginheight="0" marginwidth="0">Loading…</iframe>
         </div>
         
         <div style="text-align: center;">

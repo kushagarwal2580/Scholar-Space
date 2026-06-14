@@ -462,6 +462,24 @@ fun SettingsScreen(
                             }
                             
                             Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedButton(
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://docs.google.com/forms/d/e/1FAIpQLSe6siz_nr1AMRK3YeOiMfXgMDvMV8dI19xBakQFsKG544TyHQ/viewform?usp=header") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Feedback, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Feedback Form", color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
                             
                             OutlinedButton(
                                 onClick = { 
