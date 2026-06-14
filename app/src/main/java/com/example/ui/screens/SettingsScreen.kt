@@ -480,13 +480,18 @@ fun SettingsScreen(
                                             (Please attach any screenshots or screen recordings to this email)
                                         """.trimIndent()
                                         
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                            type = "message/rfc822"
-                                            putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("app.scholarspace@gmail.com"))
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com")
                                             putExtra(android.content.Intent.EXTRA_SUBJECT, "Topic: ")
                                             putExtra(android.content.Intent.EXTRA_TEXT, bodyStr)
                                         }
-                                        context.startActivity(android.content.Intent.createChooser(intent, "Send Feedback"))
+                                        intent.setPackage("com.google.android.gm")
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            intent.setPackage(null)
+                                            context.startActivity(android.content.Intent.createChooser(intent, "Send Feedback"))
+                                        }
                                     } catch (e: Exception) {
                                         android.widget.Toast.makeText(context, "No email app found.", android.widget.Toast.LENGTH_SHORT).show()
                                     }
@@ -497,24 +502,6 @@ fun SettingsScreen(
                                 Icon(Icons.Default.Feedback, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Send Feedback", color = MaterialTheme.colorScheme.onSurface)
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            OutlinedButton(
-                                onClick = { 
-                                    try {
-                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
                             }
                             
                             Spacer(modifier = Modifier.height(8.dp))
@@ -573,8 +560,26 @@ fun SettingsScreen(
                                 } else {
                                     Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Check for Updates", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Latest Version: ${com.example.BuildConfig.VERSION_NAME}", color = MaterialTheme.colorScheme.onSurface)
                                 }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            OutlinedButton(
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
