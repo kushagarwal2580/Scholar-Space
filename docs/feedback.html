@@ -45,7 +45,7 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            max-width: 380px;
+            max-width: 800px;
             width: 90%;
             margin: 20px auto;
             box-sizing: border-box;
@@ -59,89 +59,54 @@
 
         h1 {
             color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 8px;
+            margin: 0 0 12px;
             font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
         p {
+            margin: 0 0 32px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
             text-align: justify;
         }
         
-        p.subtitle {
-            color: var(--text-secondary);
-            margin-top: 0;
-            margin-bottom: 32px;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        input[type="email"],
-        input[type="text"],
-        textarea {
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
-            padding: 14px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 12px;
-            color: var(--text-main);
-            font-family: 'Space Grotesk', system-ui, sans-serif;
-            font-size: 15px;
-            box-sizing: border-box;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="email"]:focus,
-        input[type="text"]:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        button[type="submit"] {
-            background-color: var(--primary-color);
-            color: #0F172A;
-            border: none;
-            border-radius: 12px;
-            padding: 16px;
-            width: 100%;
+            padding: 16px 0;
+            margin-bottom: 16px;
+            border-radius: 16px;
             font-size: 16px;
-            font-weight: 700;
-            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-sizing: border-box;
+            gap: 10px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 12px;
+            border: none;
+            font-family: inherit;
         }
 
-        button[type="submit"]:hover {
-            transform: translateY(-2px);
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
             box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
         }
-        
-        button[type="submit"]:active {
-            transform: translateY(0);
+
+        .btn-primary:hover {
+            background-color: #06B6D4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 211, 238, 0.4);
         }
         
         .back-link {
             display: inline-block;
-            margin-top: 24px;
+            margin-top: 16px;
             color: var(--text-secondary);
             text-decoration: none;
             font-size: 14px;
@@ -151,30 +116,18 @@
         .back-link:hover {
             color: var(--text-main);
         }
-        /* Google Forms does not natively support dark mode via embeds, so we use a CSS filter trick */
-        .google-form-iframe {
-            border-radius: 12px;
-            background: transparent;
-            width: 100%;
-            height: 800px;
-            border: 0;
-            filter: invert(90%) hue-rotate(180deg) contrast(1.1);
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Feedback & Support</h1>
-        <p class="subtitle">Have a feature request, found a bug, or just want to say hi? Send us a message below.</p>
+        <p>We're always looking to improve Scholar Space. Whether you've found a bug, have a great idea for a new feature, or just want to share your experience, we'd love to hear from you.</p>
 
-        <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
-            <p style="font-size: 16px; margin-bottom: 24px; color: var(--text-secondary);">
-                We'd love to hear from you! Please tap the button below to send us an email with your feedback, bug reports, or feature requests.
-            </p>
-            <button onclick="sendFeedbackEmail()" style="display: block; width: 100%; font-family: 'Space Grotesk', sans-serif; background-color: var(--primary-color); color: #0F172A; padding: 16px 24px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-bottom: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);">
-                Send Email
-            </button>
-        </div>
+        <p>Tap the button below to open your email client and send us a message directly. Including details about your device and app version helps us assist you better.</p>
+        
+        <button onclick="sendFeedbackEmail()" class="btn btn-primary">
+            Send Email
+        </button>
         
         <div style="text-align: center;">
             <a href="index.html" class="back-link">← Back to Home</a>

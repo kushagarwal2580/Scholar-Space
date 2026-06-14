@@ -445,6 +445,15 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             
+                            Text(
+                                text = "Scholar Space is open-source and free to use. If you enjoy the app, consider supporting the development!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 20.sp
+                            )
+                            
                             Button(
                                 onClick = { 
                                     try {
@@ -453,77 +462,77 @@ fun SettingsScreen(
                                         android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
-                                Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Support the Developer", fontWeight = FontWeight.Bold)
+                                Text("Support the Developer", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                             
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedButton(
-                                onClick = { 
-                                    try {
-                                        uriHandler.openUri("https://scholarspace.xyz") 
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Visit Website", color = MaterialTheme.colorScheme.onSurface)
-                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                             
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedButton(
-                                onClick = { 
-                                    try {
-                                        val bodyStr = """
-                                            Device Info (Model, Android Version):
-                                            
-                                            
-                                            App Version:
-                                            
-                                            
-                                            Description:
-                                            
-                                            
-                                            Upload Attachments:
-                                            (Please attach any screenshots or screen recordings to this email)
-                                        """.trimIndent()
-                                        
-                                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com")
-                                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Topic: ")
-                                            putExtra(android.content.Intent.EXTRA_TEXT, bodyStr)
-                                        }
-                                        intent.setPackage("com.google.android.gm")
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedButton(
+                                    onClick = { 
                                         try {
-                                            context.startActivity(intent)
+                                            uriHandler.openUri("https://scholarspace.xyz") 
                                         } catch (e: Exception) {
-                                            intent.setPackage(null)
-                                            context.startActivity(android.content.Intent.createChooser(intent, "Send Feedback"))
+                                            android.widget.Toast.makeText(context, "No browser app found.", android.widget.Toast.LENGTH_SHORT).show()
                                         }
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No email app found.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Feedback, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Send Feedback", color = MaterialTheme.colorScheme.onSurface)
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Visit Website", color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = { 
+                                        try {
+                                            val bodyStr = """
+                                                Device Info (Model, Android Version):
+                                                
+                                                
+                                                App Version:
+                                                
+                                                
+                                                Description:
+                                                
+                                                
+                                                Upload Attachments:
+                                                (Please attach any screenshots or screen recordings to this email)
+                                            """.trimIndent()
+                                            
+                                            val subject = android.net.Uri.encode("Topic:")
+                                            val body = android.net.Uri.encode(bodyStr)
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                                data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com?subject=${subject}&body=${body}")
+                                            }
+                                            intent.setPackage("com.google.android.gm")
+                                            try {
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                intent.setPackage(null)
+                                                context.startActivity(android.content.Intent.createChooser(intent, "Send Feedback"))
+                                            }
+                                        } catch (e: Exception) {
+                                            android.widget.Toast.makeText(context, "No email app found.", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Feedback", color = MaterialTheme.colorScheme.onSurface)
+                                }
                             }
                             
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                             
                             OutlinedButton(
                                 onClick = { 
@@ -550,7 +559,7 @@ fun SettingsScreen(
                                         }
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 if (isCheckingUpdate) {
@@ -568,15 +577,14 @@ fun SettingsScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "App Version v${com.example.BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
