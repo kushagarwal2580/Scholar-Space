@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback - Scholar Space</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0F172A;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --primary-color: #22D3EE;
+            --text-main: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 90%;
+            margin: 40px auto;
+            padding: 40px 32px;
+            background: var(--card-bg);
+            border-radius: 28px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 32px;
+        }
+        
+        p.subtitle {
+            color: var(--text-secondary);
+            margin-top: 0;
+            margin-bottom: 32px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        input[type="email"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="email"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        button[type="submit"] {
+            background-color: var(--primary-color);
+            color: #0F172A;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 12px;
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+        }
+        
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Feedback & Support</h1>
+        <p class="subtitle">Have a feature request, found a bug, or just want to say hi? Send us a message below.</p>
+
+        <!-- Replace this action with your Web3Forms Access Key or Formspree URL -->
+        <form action="https://api.web3forms.com/submit" method="POST" enctype="multipart/form-data">
+            
+            <!-- Required: Get your free Access Key at https://web3forms.com/ -->
+            <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+
+            <!-- Optional: Where to redirect user after submission -->
+            <input type="hidden" name="redirect" value="https://scholarspace.xyz">
+
+            <div class="form-group">
+                <label for="name">Name (Optional)</label>
+                <input type="text" id="name" name="name" placeholder="How should we address you?">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" placeholder="So we can get back to you" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Your Message</label>
+                <textarea id="message" name="message" placeholder="What's on your mind?" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="attachment">Attachment (Optional)</label>
+                <input type="file" id="attachment" name="attachment" accept="image/*,.pdf,.doc,.docx,.txt" style="background-color: transparent; border: none; padding: 0; color: var(--text-secondary); width: auto;">
+            </div>
+
+            <button type="submit">Submit Feedback</button>
+        </form>
+        
+        <div style="text-align: center;">
+            <a href="index.html" class="back-link">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
