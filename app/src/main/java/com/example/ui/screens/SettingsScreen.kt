@@ -445,6 +445,25 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             
+                            Button(
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://razorpay.me/@scholarspace") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+                            ) {
+                                Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Support the Developer", fontWeight = FontWeight.Bold)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+
                             OutlinedButton(
                                 onClick = { 
                                     try {
@@ -502,43 +521,6 @@ fun SettingsScreen(
                                 Icon(Icons.Default.Feedback, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Send Feedback", color = MaterialTheme.colorScheme.onSurface)
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            OutlinedButton(
-                                onClick = { 
-                                    try {
-                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Button(
-                                onClick = { 
-                                    try {
-                                        uriHandler.openUri("https://razorpay.me/@scholarspace") 
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
-                            ) {
-                                Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Support the Developer", fontWeight = FontWeight.Bold)
                             }
                             
                             Spacer(modifier = Modifier.height(8.dp))

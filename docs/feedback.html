@@ -19,26 +19,42 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
             min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.15) 0%, transparent 55%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.15) 0%, transparent 65%),
+                radial-gradient(circle at 15% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 55%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 55%);
+            background-attachment: fixed;
         }
 
         .container {
-            max-width: 600px;
-            width: 90%;
-            margin: 40px auto;
-            padding: 40px 32px;
+            text-align: center;
+            padding: 40px 24px;
             background: var(--card-bg);
             border-radius: 28px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
+            max-width: 380px;
+            width: 90%;
+            margin: 20px auto;
             box-sizing: border-box;
+            animation: fadeUp 0.8s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         h1 {
@@ -151,18 +167,30 @@
             <p style="font-size: 16px; margin-bottom: 24px; color: var(--text-secondary);">
                 We'd love to hear from you! Please tap the button below to send us an email with your feedback, bug reports, or feature requests.
             </p>
-            <a href="mailto:app.scholarspace@gmail.com?subject=Topic:&body=Device%20Info%20(Model%2C%20Android%20Version)%3A%0A%0A%0AApp%20Version%3A%0A%0A%0ADescription%3A%0A%0A%0AUpload%20Attachments%3A%0A(Please%20attach%20any%20screenshots%20or%20screen%20recordings%20to%20this%20email)" style="display: inline-block; background-color: var(--primary-color); color: #0F172A; padding: 16px 24px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-bottom: 16px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);">
-                Send Email via Default App
-            </a>
-            <br>
-            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=app.scholarspace@gmail.com&su=Topic:&body=Device%20Info%20(Model%2C%20Android%20Version)%3A%0A%0A%0AApp%20Version%3A%0A%0A%0ADescription%3A%0A%0A%0AUpload%20Attachments%3A%0A(Please%20attach%20any%20screenshots%20or%20screen%20recordings%20to%20this%20email)" target="_blank" style="display: inline-block; background-color: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 14px 22px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; transition: transform 0.2s, box-shadow 0.2s;">
-                Open in Web Gmail
-            </a>
+            <button onclick="sendFeedbackEmail()" style="display: block; width: 100%; font-family: 'Space Grotesk', sans-serif; background-color: var(--primary-color); color: #0F172A; padding: 16px 24px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-bottom: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);">
+                Send Email
+            </button>
         </div>
         
         <div style="text-align: center;">
             <a href="index.html" class="back-link">← Back to Home</a>
         </div>
     </div>
+
+    <script>
+        function sendFeedbackEmail() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const to = "app.scholarspace@gmail.com";
+            const subject = encodeURIComponent("Topic:");
+            const bodyText = "Device Info (Model, Android Version):\n\n\nApp Version:\n\n\nDescription:\n\n\nUpload Attachments:\n(Please attach any screenshots or screen recordings to this email)";
+            const body = encodeURIComponent(bodyText);
+            
+            if (isMobile) {
+                window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+            } else {
+                window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`, '_blank');
+            }
+        }
+    </script>
 </body>
 </html>
