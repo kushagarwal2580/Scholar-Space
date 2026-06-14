@@ -506,6 +506,24 @@ fun SettingsScreen(
                             
                             Spacer(modifier = Modifier.height(8.dp))
                             
+                            OutlinedButton(
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
                             Button(
                                 onClick = { 
                                     try {
@@ -560,33 +578,23 @@ fun SettingsScreen(
                                 } else {
                                     Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Latest Version: ${com.example.BuildConfig.VERSION_NAME}", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Check for Updates", color = MaterialTheme.colorScheme.onSurface)
                                 }
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            OutlinedButton(
-                                onClick = { 
-                                    try {
-                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        text = "App Version v${com.example.BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }

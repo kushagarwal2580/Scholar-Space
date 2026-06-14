@@ -239,14 +239,6 @@
             Download APK
         </a>
         <span class="version-text" id="version-text">Checking latest version...</span>
-        
-        <!-- GitHub Button -->
-        <a href="https://github.com/kushagarwal2580/Scholar-Space" class="btn btn-github">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-            </svg>
-            View on GitHub
-        </a>
     </div>
 
     <!-- Features Section -->
@@ -336,15 +328,22 @@
             Support the Developer
         </a>
         
-        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 12px;">
-            <a href="privacy.html" class="btn btn-github" style="margin-bottom: 0; padding: 10px 16px; font-size: 14px; border-radius: 12px; width: auto; flex: 1;">
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 12px; flex-wrap: wrap;">
+            <a href="https://github.com/kushagarwal2580/Scholar-Space" class="btn btn-github" style="margin-bottom: 0; padding: 10px 12px; font-size: 14px; border-radius: 12px; width: auto; flex: 1; min-width: max-content;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                </svg>
+                GitHub
+            </a>
+            
+            <a href="privacy.html" class="btn btn-github" style="margin-bottom: 0; padding: 10px 12px; font-size: 14px; border-radius: 12px; width: auto; flex: 1; min-width: max-content;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
                 Privacy
             </a>
             
-            <a href="feedback.html" class="btn btn-github" style="margin-bottom: 0; padding: 10px 16px; font-size: 14px; border-radius: 12px; width: auto; flex: 1;">
+            <a href="feedback.html" class="btn btn-github" style="margin-bottom: 0; padding: 10px 12px; font-size: 14px; border-radius: 12px; width: auto; flex: 1; min-width: max-content;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                 </svg>
@@ -382,11 +381,11 @@
                 
                 // Give user feedback on which version it's downloading
                 const version = data.tag_name ? data.tag_name.replace('v', '') : '1.1';
-                versionText.textContent = "Version " + version + " available";
+                versionText.textContent = "Latest Version: " + version;
                 
             } catch (e) {
                 console.error('Error fetching latest release:', e);
-                document.getElementById('version-text').textContent = 'Latest release available on GitHub';
+                document.getElementById('version-text').textContent = 'Latest Version: Unknown';
             }
         }
         
