@@ -465,14 +465,14 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Button(
-                                onClick = { uriHandler.openUri("https://buymeacoffee.com/scholarspace") },
+                                onClick = { uriHandler.openUri("PLACEHOLDER_RAZORPAY_LINK") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDD00), contentColor = Color.Black)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                             ) {
-                                Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Support App (Buy Me a Coffee)", fontWeight = FontWeight.Bold)
+                                Text("Support the Developer", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

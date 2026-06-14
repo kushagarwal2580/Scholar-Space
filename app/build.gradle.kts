@@ -77,6 +77,8 @@ dependencies {
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.auth)
   implementation("com.google.firebase:firebase-messaging")
+  implementation("com.google.firebase:firebase-inappmessaging-display")
+  implementation("com.google.firebase:firebase-analytics")
   // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
