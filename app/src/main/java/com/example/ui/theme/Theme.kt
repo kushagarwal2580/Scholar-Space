@@ -36,5 +36,13 @@ fun MyApplicationTheme(
       DarkColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  val localDensity = androidx.compose.ui.platform.LocalDensity.current
+  val customDensity = androidx.compose.ui.unit.Density(localDensity.density, 1.0f)
+
+  MaterialTheme(colorScheme = colorScheme, typography = Typography) {
+      androidx.compose.runtime.CompositionLocalProvider(
+          androidx.compose.ui.platform.LocalDensity provides customDensity,
+          content = content
+      )
+  }
 }

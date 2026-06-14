@@ -363,7 +363,7 @@
                 const data = await response.json();
                 
                 // Try to find the actual .apk file in the release assets
-                const apkAsset = data.assets.find(asset => asset.name.toLowerCase().endsWith('.apk'));
+                const apkAsset = data.assets && data.assets.find(asset => asset.name.toLowerCase().endsWith('.apk'));
                 const downloadBtn = document.getElementById('download-btn');
                 const versionText = document.getElementById('version-text');
                 
@@ -376,11 +376,13 @@
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                         Download Latest APK`;
+                } else if (data.html_url) {
+                    downloadBtn.href = data.html_url;
                 }
                 
                 // Give user feedback on which version it's downloading
-                const version = data.tag_name ? data.tag_name.replace('v', '') : 'latest';
-                versionText.textContent = \`Version \${version} available\`;
+                const version = data.tag_name ? data.tag_name.replace('v', '') : '1.1';
+                versionText.textContent = "Version " + version + " available";
                 
             } catch (e) {
                 console.error('Error fetching latest release:', e);

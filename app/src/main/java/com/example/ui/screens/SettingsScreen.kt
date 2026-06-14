@@ -29,6 +29,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Logout
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.ui.components.GlassBackground
 import com.example.ui.components.glassMorphic
 
@@ -89,6 +91,9 @@ fun SettingsScreen(
     
     var isSavingProfilePic by remember { mutableStateOf(false) }
     var isRemovingProfilePic by remember { mutableStateOf(false) }
+    
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
 
     androidx.activity.compose.BackHandler(enabled = selectedImageUriForCrop != null || isPhotoViewerOpen || showPhotoEditOptions || showLogoutDialog || isEditingProfile) {
         if (selectedImageUriForCrop != null) {
@@ -491,6 +496,47 @@ fun SettingsScreen(
                                 Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Support the Developer", fontWeight = FontWeight.Bold)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            OutlinedButton(
+                                onClick = { 
+                                    if (isCheckingUpdate) return@OutlinedButton
+                                    isCheckingUpdate = true
+                                    coroutineScope.launch {
+                                        val updateInfo = com.example.utils.UpdateChecker.checkForUpdates(
+                                            githubOwner = "kushagarwal2580",
+                                            githubRepo = "Scholar-Space",
+                                            currentVersion = com.example.BuildConfig.VERSION_NAME
+                                        )
+                                        isCheckingUpdate = false
+                                        if (updateInfo != null && updateInfo.isUpdateAvailable) {
+                                            android.widget.Toast.makeText(context, "New version v${updateInfo.latestVersion} available! Downloading...", android.widget.Toast.LENGTH_LONG).show()
+                                            try {
+                                                uriHandler.openUri(updateInfo.downloadUrl)
+                                            } catch (e: Exception) {
+                                                android.widget.Toast.makeText(context, "No browser found.", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else if (updateInfo != null) {
+                                            android.widget.Toast.makeText(context, "App is up to date (v${com.example.BuildConfig.VERSION_NAME}).", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(context, "Failed to check for updates.", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                if (isCheckingUpdate) {
+                                    androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Checking...", color = MaterialTheme.colorScheme.onSurface)
+                                } else {
+                                    Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Check for Updates", color = MaterialTheme.colorScheme.onSurface)
+                                }
                             }
                         }
                     }

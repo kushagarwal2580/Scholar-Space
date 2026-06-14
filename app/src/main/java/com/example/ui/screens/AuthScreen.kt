@@ -175,7 +175,8 @@ fun AuthScreen(authViewModel: AuthViewModel) {
                             ),
                             border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.Cyan400.copy(alpha = 0.5f)),
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = androidx.compose.foundation.shape.CircleShape
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            contentPadding = PaddingValues(horizontal = 16.dp)
                         ) {
                             Icon(
                                 painter = androidx.compose.ui.res.painterResource(id = com.example.R.drawable.ic_google),
@@ -184,7 +185,14 @@ fun AuthScreen(authViewModel: AuthViewModel) {
                                 tint = Color.Unspecified
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Sign in with Google", color = com.example.ui.theme.Cyan400, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                "Sign in with Google", 
+                                color = com.example.ui.theme.Cyan400, 
+                                fontWeight = FontWeight.SemiBold, 
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
                         }
                         
                         if (showOfflineMessage) {

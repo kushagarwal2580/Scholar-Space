@@ -563,7 +563,11 @@ fun DashboardScreen(
                     }
                 } else if (lowerActualQuery.isNotEmpty() || filterMode != null) {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Text("No items found for \"$searchQuery\"", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "No items found for \"$searchQuery\"", 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -1692,7 +1696,12 @@ fun DashboardScreen(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "No files yet. Tap the '+' icon to add some!", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                        Text(
+                            text = "No files yet. Tap the '+' icon to add some!", 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                            fontSize = 13.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 } else {
                     recentFiles.forEach { file ->

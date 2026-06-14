@@ -363,7 +363,8 @@ fun NotesScreen(
                                     text = if (searchQuery.isNotEmpty()) "No matching notes" else "No notes yet",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
