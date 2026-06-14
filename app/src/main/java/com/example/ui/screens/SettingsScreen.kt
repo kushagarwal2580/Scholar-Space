@@ -466,9 +466,29 @@ fun SettingsScreen(
                             OutlinedButton(
                                 onClick = { 
                                     try {
-                                        uriHandler.openUri("https://docs.google.com/forms/d/e/1FAIpQLSe6siz_nr1AMRK3YeOiMfXgMDvMV8dI19xBakQFsKG544TyHQ/viewform?usp=header") 
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com")
+                                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Scholar Space Feedback - Topic (Bug/Feature/Other)")
+                                            val appVersion = com.example.BuildConfig.VERSION_NAME
+                                            val body = """
+                                                Description:
+                                                
+                                                
+                                                Device Info (Model, Android Version):
+                                                
+                                                
+                                                App Version:
+                                                ${"$"}{appVersion}
+                                                
+                                                
+                                                Upload Attachments:
+                                                (Please attach any screenshots or screen recordings to this email)
+                                            """.trimIndent()
+                                            putExtra(android.content.Intent.EXTRA_TEXT, body)
+                                        }
+                                        context.startActivity(intent)
                                     } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                        android.widget.Toast.makeText(context, "No email app found.", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -476,7 +496,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Default.Feedback, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Feedback Form", color = MaterialTheme.colorScheme.onSurface)
+                                Text("Send Feedback", color = MaterialTheme.colorScheme.onSurface)
                             }
                             
                             Spacer(modifier = Modifier.height(8.dp))

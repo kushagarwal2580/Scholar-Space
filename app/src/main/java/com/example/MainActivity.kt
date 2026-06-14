@@ -195,6 +195,31 @@ class MainActivity : ComponentActivity() {
                 val isMetadataSyncing by driveViewModel.isMetadataSyncing.collectAsState()
                 var previousAccount by remember { mutableStateOf(activeAccount) }
                 
+                val recoverableAuthIntent by driveViewModel.recoverableAuthIntent.collectAsState()
+                val driveAuthLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    if (result.resultCode == android.app.Activity.RESULT_OK) {
+                        val email = driveViewModel.activeAccount.value
+                        if (email != null) {
+                            driveViewModel.fetchDriveStorage(this@MainActivity, email)
+                            driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
+                            driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false)
+                        }
+                    }
+                }
+                
+                LaunchedEffect(recoverableAuthIntent) {
+                    recoverableAuthIntent?.let {
+                        try {
+                            driveAuthLauncher.launch(it)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(this@MainActivity, "Google Play Services not available to grant Drive access.", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                        driveViewModel.clearRecoverableAuthIntent()
+                    }
+                }
+                
                 LaunchedEffect(activeAccount) {
                     if (previousAccount != activeAccount && previousAccount != null) {
                         libraryViewModel.clearFiles(this@MainActivity)

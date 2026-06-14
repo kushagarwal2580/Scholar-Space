@@ -155,26 +155,6 @@ fun DashboardScreen(
 
     val prefs = remember { context.getSharedPreferences("SettingsPrefs", android.content.Context.MODE_PRIVATE) }
     
-    val recoverableAuthIntent by driveViewModel.recoverableAuthIntent.collectAsState()
-    val driveAuthLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val email = driveViewModel.activeAccount.value
-            if (email != null) {
-                driveViewModel.fetchDriveStorage(context, email)
-            }
-        }
-    }
-    LaunchedEffect(recoverableAuthIntent) {
-        recoverableAuthIntent?.let {
-            try {
-                driveAuthLauncher.launch(it)
-            } catch (e: android.content.ActivityNotFoundException) {
-                android.widget.Toast.makeText(context, "Google Play Services not available to grant Drive access.", android.widget.Toast.LENGTH_LONG).show()
-            }
-            driveViewModel.clearRecoverableAuthIntent()
-        }
-    }
-
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->

@@ -137,9 +137,15 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                     )
                                 } else {
                                     // If failed, still try local auth as fallback
-                                    val existingUserLocal = userRepository.getUserByEmail(email)
+                                    var existingUserLocal = userRepository.getUserByEmail(email)
+                                    if (existingUserLocal == null) {
+                                        userRepository.registerUser(displayName ?: email.split("@")[0], email, null, "")
+                                        existingUserLocal = userRepository.getUserByEmail(email)
+                                    }
+                                    
                                     if (existingUserLocal != null) {
                                         prefs.edit().putString("loggedInEmail", email).apply()
+                                        _isSyncing.value = true
                                         _uiState.value = AuthState.Success(
                                             email = email,
                                             displayName = existingUserLocal.username ?: displayName,
@@ -149,7 +155,7 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                             statusMsg = existingUserLocal.statusMsg
                                         )
                                     } else {
-                                        _uiState.value = AuthState.Error("NO_ACCOUNT_FOUND", true)
+                                        _uiState.value = AuthState.Error("Failed to create local account", true)
                                     }
                                 }
                             }
