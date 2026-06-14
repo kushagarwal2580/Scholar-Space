@@ -22,6 +22,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.Cyan400
 
+import com.example.ui.components.GlassBackground
+
 @Composable
 fun UpdateDialog(
     showDialog: Boolean,
@@ -31,28 +33,30 @@ fun UpdateDialog(
 ) {
     if (showDialog) {
         val context = LocalContext.current
-        val isDark = true
-        val bgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF)
-        val textColor = if (isDark) Color.White else Color(0xFF1E293B)
+        val textColor = MaterialTheme.colorScheme.onSurface
 
         Dialog(
             onDismissRequest = { onDismiss() },
             properties = DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = true
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
             )
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(bgColor)
-                    .padding(24.dp)
+                modifier = Modifier.padding(24.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
+                GlassBackground(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(32.dp))
                 ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                    ) {
                     Box(
                         modifier = Modifier
                             .size(64.dp)
@@ -97,7 +101,7 @@ fun UpdateDialog(
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Cyan400,
-                            contentColor = Color.White
+                            contentColor = Color.Black
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -124,7 +128,9 @@ fun UpdateDialog(
                         )
                     }
                 }
+                }
             }
         }
     }
 }
+
