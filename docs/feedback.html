@@ -23,8 +23,6 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
             min-height: 100vh;
             background-image: 
@@ -37,17 +35,16 @@
         }
 
         .container {
-            text-align: center;
-            padding: 40px 24px;
+            max-width: 800px;
+            width: 90%;
+            margin: 40px auto;
+            padding: 40px 32px;
             background: var(--card-bg);
             border-radius: 28px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            max-width: 800px;
-            width: 90%;
-            margin: 20px auto;
             box-sizing: border-box;
             animation: fadeUp 0.8s ease-out;
         }
@@ -128,6 +125,10 @@
         <button onclick="sendFeedbackEmail()" class="btn btn-primary">
             Send Email
         </button>
+
+        <p style="margin-top: 32px; font-size: 13px; color: var(--text-secondary); text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 32px;">
+            <strong style="color: var(--text-main);">Discretion &amp; Confidentiality:</strong> Any feedback, suggestions, or bug reports submitted are handled with the utmost discretion. Scholar Space is committed to maintaining a secure and private educational environment.
+        </p>
         
         <div style="text-align: center;">
             <a href="index.html" class="back-link">← Back to Home</a>
