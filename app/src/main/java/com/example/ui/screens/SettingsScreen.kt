@@ -465,7 +465,7 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Button(
-                                onClick = { uriHandler.openUri("PLACEHOLDER_RAZORPAY_LINK") },
+                                onClick = { uriHandler.openUri("https://razorpay.me/@scholarspace") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)

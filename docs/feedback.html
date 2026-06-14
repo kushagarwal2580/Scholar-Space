@@ -138,37 +138,10 @@
         <h1>Feedback & Support</h1>
         <p class="subtitle">Have a feature request, found a bug, or just want to say hi? Send us a message below.</p>
 
-        <!-- Replace this action with your Web3Forms Access Key or Formspree URL -->
-        <form action="https://api.web3forms.com/submit" method="POST" enctype="multipart/form-data">
-            
-            <!-- Required: Get your free Access Key at https://web3forms.com/ -->
-            <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
-
-            <!-- Optional: Where to redirect user after submission -->
-            <input type="hidden" name="redirect" value="https://scholarspace.xyz">
-
-            <div class="form-group">
-                <label for="name">Name (Optional)</label>
-                <input type="text" id="name" name="name" placeholder="How should we address you?">
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email address</label>
-                <input type="email" id="email" name="email" placeholder="So we can get back to you" required>
-            </div>
-
-            <div class="form-group">
-                <label for="message">Your Message</label>
-                <textarea id="message" name="message" placeholder="What's on your mind?" required></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="attachment">Attachment (Optional)</label>
-                <input type="file" id="attachment" name="attachment" accept="image/*,.pdf,.doc,.docx,.txt" style="background-color: transparent; border: none; padding: 0; color: var(--text-secondary); width: auto;">
-            </div>
-
-            <button type="submit">Submit Feedback</button>
-        </form>
+        <!-- Replace the src URL with your Google Form embed URL -->
+        <div style="width: 100%; display: flex; justify-content: center; margin-top: 16px;">
+            <iframe src="YOUR_GOOGLE_FORM_EMBED_URL_HERE" width="100%" height="800" frameborder="0" marginheight="0" marginwidth="0" style="border-radius: 12px; background: transparent;">Loading…</iframe>
+        </div>
         
         <div style="text-align: center;">
             <a href="index.html" class="back-link">← Back to Home</a>
