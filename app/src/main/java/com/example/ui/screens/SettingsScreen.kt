@@ -421,6 +421,63 @@ fun SettingsScreen(
                     }
                 }
 
+                // ABOUT & SUPPORT SECTION
+                item {
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .glassMorphic(RoundedCornerShape(24.dp))
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                            Text(
+                                text = "About & Support",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = com.example.ui.theme.Cyan400,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            OutlinedButton(
+                                onClick = { uriHandler.openUri("https://scholarspace.xyz") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Visit Website", color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            OutlinedButton(
+                                onClick = { uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("GitHub Repository", color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Button(
+                                onClick = { uriHandler.openUri("https://buymeacoffee.com/scholarspace") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFDD00), contentColor = Color.Black)
+                            ) {
+                                Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Support App (Buy Me a Coffee)", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                 }
