@@ -138,53 +138,29 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun signInWithGoogle(context: Context, onResult: (String?) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val webClientId = com.example.BuildConfig.GOOGLE_WEB_CLIENT_ID
-                if (webClientId.isBlank() || webClientId == "MY_GOOGLE_WEB_CLIENT_ID") {
-                   onResult(null)
-                   return@launch
-                }
+    fun getSignInIntent(context: Context): android.content.Intent {
+        val webClientId = com.example.BuildConfig.GOOGLE_WEB_CLIENT_ID
+        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .requestScopes(com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.file"))
+            .build()
+        val client = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+        return client.signInIntent
+    }
 
-                val credentialManager = androidx.credentials.CredentialManager.create(context)
-                
-                val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(webClientId)
-                    .setAutoSelectEnabled(false)
-                    .build()
-
-                val request = androidx.credentials.GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context
-                )
-
-                val credential = result.credential
-                if (credential is androidx.credentials.CustomCredential && credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                    try {
-                        val googleIdTokenCredential = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
-                        onResult(googleIdTokenCredential.id)
-                    } catch (e: Exception) {
-                        onResult(null)
-                    }
-                } else {
-                    onResult(null)
-                }
-            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
-                Log.d("DriveViewModel", "Sign in cancelled by user")
-                onResult(null)
-            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-                Log.e("DriveViewModel", "Sign in failed - No credential available", e)
-                onResult(null)
-            } catch (e: Exception) {
-                Log.e("DriveViewModel", "Sign in failed", e)
-                onResult(null)
+    fun handleSignInResult(context: Context, intent: android.content.Intent?) {
+        try {
+            val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(intent)
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            if (account != null && account.email != null) {
+                handleSignInEmail(context, account.email!!)
+            } else {
+                android.widget.Toast.makeText(context, "Failed to get Google account", android.widget.Toast.LENGTH_SHORT).show()
             }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "Sign in cancelled or failed", android.widget.Toast.LENGTH_SHORT).show()
+            Log.e("DriveViewModel", "Sign in failed", e)
         }
     }
 

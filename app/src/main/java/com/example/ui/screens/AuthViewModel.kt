@@ -39,7 +39,7 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
         viewModelScope.launch {
             if (_uiState.value !is AuthState.Success) {
                 val loggedInEmail = prefs.getString("loggedInEmail", null)
-                if (loggedInEmail != null) {
+                if (loggedInEmail != null && loggedInEmail.contains("@")) {
                     val existingUser = userRepository.getUserByEmail(loggedInEmail)
                     if (existingUser != null) {
                         _uiState.value = AuthState.Success(
@@ -79,105 +79,83 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
         }
     }
 
-    fun signInWithGoogle(context: Context) {
+    fun getSignInIntent(context: Context): android.content.Intent {
+        val webClientId = com.example.BuildConfig.GOOGLE_WEB_CLIENT_ID
+        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .requestProfile()
+            .requestScopes(com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.file"))
+            .build()
+        val client = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+        return client.signInIntent
+    }
+
+    fun handleSignInResult(intent: android.content.Intent?) {
         viewModelScope.launch {
             _uiState.value = AuthState.Loading
-            
             try {
-                val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
-                if (webClientId.isBlank() || webClientId == "MY_GOOGLE_WEB_CLIENT_ID") {
-                   _uiState.value = AuthState.Error("Google Web Client ID is not configured. Please add it to your environment secrets.", true)
-                   return@launch
-                }
-
-                val credentialManager = CredentialManager.create(context)
+                val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(intent)
+                val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
                 
-                // GetGoogleIdOption triggers the new Google Identity Service bottom sheet (One Tap UI/button UI)
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(webClientId)
-                    .setAutoSelectEnabled(false)
-                    .build()
-
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context
-                )
-
-                val credential = result.credential
-                if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                    try {
-                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                        
-                        val email = googleIdTokenCredential.id
-                        val displayName = googleIdTokenCredential.displayName
-                        
-                        val fbCred = com.google.firebase.auth.GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
-                        com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(fbCred).addOnCompleteListener { task ->
-                            viewModelScope.launch {
-                                if (task.isSuccessful) {
-                                    var existingUser = userRepository.getUserByEmail(email)
-                                    if (existingUser == null) {
-                                        userRepository.registerUser(displayName ?: email.split("@")[0], email, null, "")
-                                        existingUser = userRepository.getUserByEmail(email)
-                                    }
+                val email = account?.email
+                val idToken = account?.idToken
+                
+                if (email != null && idToken != null) {
+                    val displayName = account.displayName ?: email.split("@")[0]
+                    val fbCred = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(fbCred).addOnCompleteListener { fbTask ->
+                        viewModelScope.launch {
+                            if (fbTask.isSuccessful) {
+                                var existingUser = userRepository.getUserByEmail(email)
+                                if (existingUser == null) {
+                                    userRepository.registerUser(displayName, email, null, "")
+                                    existingUser = userRepository.getUserByEmail(email)
+                                }
+                                prefs.edit().putString("loggedInEmail", email).apply()
+                                _isSyncing.value = true // Trigger syncing screen
+                                _uiState.value = AuthState.Success(
+                                    email = email,
+                                    displayName = existingUser?.username ?: displayName,
+                                    profilePic = existingUser?.profilePic,
+                                    phone = existingUser?.phone,
+                                    bio = existingUser?.bio,
+                                    statusMsg = existingUser?.statusMsg
+                                )
+                            } else {
+                                // Local fallback
+                                var existingUserLocal = userRepository.getUserByEmail(email)
+                                if (existingUserLocal == null) {
+                                    userRepository.registerUser(displayName, email, null, "")
+                                    existingUserLocal = userRepository.getUserByEmail(email)
+                                }
+                                if (existingUserLocal != null) {
                                     prefs.edit().putString("loggedInEmail", email).apply()
-                                    _isSyncing.value = true // Trigger syncing screen
+                                    _isSyncing.value = true
                                     _uiState.value = AuthState.Success(
                                         email = email,
-                                        displayName = existingUser?.username ?: displayName,
-                                        profilePic = existingUser?.profilePic,
-                                        phone = existingUser?.phone,
-                                        bio = existingUser?.bio,
-                                        statusMsg = existingUser?.statusMsg
+                                        displayName = existingUserLocal.username ?: displayName,
+                                        profilePic = existingUserLocal.profilePic,
+                                        phone = existingUserLocal.phone,
+                                        bio = existingUserLocal.bio,
+                                        statusMsg = existingUserLocal.statusMsg
                                     )
                                 } else {
-                                    // If failed, still try local auth as fallback
-                                    var existingUserLocal = userRepository.getUserByEmail(email)
-                                    if (existingUserLocal == null) {
-                                        userRepository.registerUser(displayName ?: email.split("@")[0], email, null, "")
-                                        existingUserLocal = userRepository.getUserByEmail(email)
-                                    }
-                                    
-                                    if (existingUserLocal != null) {
-                                        prefs.edit().putString("loggedInEmail", email).apply()
-                                        _isSyncing.value = true
-                                        _uiState.value = AuthState.Success(
-                                            email = email,
-                                            displayName = existingUserLocal.username ?: displayName,
-                                            profilePic = existingUserLocal.profilePic,
-                                            phone = existingUserLocal.phone,
-                                            bio = existingUserLocal.bio,
-                                            statusMsg = existingUserLocal.statusMsg
-                                        )
-                                    } else {
-                                        _uiState.value = AuthState.Error("Failed to create local account", true)
-                                    }
+                                    _uiState.value = AuthState.Error("Failed to create local account", true)
                                 }
                             }
                         }
-                    } catch (e: GoogleIdTokenParsingException) {
-                        _uiState.value = AuthState.Error("Failed to parse Google ID token.", true)
                     }
                 } else {
-                    _uiState.value = AuthState.Error("Unexpected credential type.", true)
+                    _uiState.value = AuthState.Error("Unexpected result from Google Sign In.", true)
                 }
-            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
-                Log.d("AuthViewModel", "Sign in cancelled by user")
-                _uiState.value = AuthState.Idle
-            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-                Log.e("AuthViewModel", "Sign in failed - No credential available", e)
-                _uiState.value = AuthState.Error("Please add a Google account to your device", true)
             } catch (e: Exception) {
-                if (e.localizedMessage?.contains("16") == true || e.localizedMessage?.contains("cancel", ignoreCase = true) == true) {
+                if (e is com.google.android.gms.common.api.ApiException && e.statusCode == com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
                     _uiState.value = AuthState.Idle
+                    Log.d("AuthViewModel", "Sign in cancelled by user")
                 } else {
                     Log.e("AuthViewModel", "Sign in failed", e)
-                    _uiState.value = AuthState.Error("Sign in failed: ${e.localizedMessage ?: "Unknown error"}", true)
+                    _uiState.value = AuthState.Error("Sign in failed: ${e.localizedMessage}", true)
                 }
             }
         }
@@ -384,7 +362,20 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    val email = googleIdTokenCredential.id
+                    var email = googleIdTokenCredential.id
+                    try {
+                        val tokenParts = googleIdTokenCredential.idToken.split(".")
+                        if (tokenParts.size >= 2) {
+                            val payloadString = String(android.util.Base64.decode(tokenParts[1], android.util.Base64.URL_SAFE))
+                            val jsonObject = org.json.JSONObject(payloadString)
+                            val extractedEmail = jsonObject.optString("email")
+                            if (extractedEmail.isNotBlank()) {
+                                email = extractedEmail
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AuthViewModel", "Failed to parse JWT", e)
+                    }
                     val displayName = googleIdTokenCredential.displayName
 
                     com.google.firebase.auth.FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)

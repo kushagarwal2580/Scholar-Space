@@ -45,6 +45,12 @@ fun AuthScreen(authViewModel: AuthViewModel) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showOfflineMessage by remember { mutableStateOf(false) }
     
+    val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        authViewModel.handleSignInResult(result.data)
+    }
+
     val isOnline = remember { 
         mutableStateOf(
             (context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).let { cm ->
@@ -164,7 +170,7 @@ fun AuthScreen(authViewModel: AuthViewModel) {
                             onClick = { 
                                 if (isOnline.value) {
                                     showOfflineMessage = false
-                                    authViewModel.signInWithGoogle(context) 
+                                    googleSignInLauncher.launch(authViewModel.getSignInIntent(context))
                                 } else {
                                     showOfflineMessage = true
                                 }

@@ -96,6 +96,12 @@ fun DashboardScreen(
     val hasAcknowledgedBackgroundRun by libraryViewModel.hasAcknowledgedBackgroundRun.collectAsState()
     var requiredAckForAction: (() -> Unit)? by remember { mutableStateOf(null) }
     
+    val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        driveViewModel.handleSignInResult(context, result.data)
+    }
+    
     val isOnline = remember { 
         mutableStateOf(
             (context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).let { cm ->
@@ -731,13 +737,7 @@ fun DashboardScreen(
                             if (!isDriveConnected && authState is AuthState.Success) {
                                 IconButton(
                                     onClick = {
-                                        driveViewModel.signInWithGoogle(context) { driveEmail ->
-                                            if (driveEmail != null) {
-                                                driveViewModel.handleSignInEmail(context, driveEmail)
-                                            } else {
-                                                android.widget.Toast.makeText(context, "Sign in cancelled or failed. Missing Client ID?", android.widget.Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
+                                        googleSignInLauncher.launch(driveViewModel.getSignInIntent(context))
                                     },
                                     modifier = Modifier.size(24.dp)
                                 ) {
