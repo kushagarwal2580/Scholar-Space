@@ -487,7 +487,7 @@ fun SettingsScreen(
                                 ) {
                                     Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Visit Website", color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Website", color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 
                                 OutlinedButton(
