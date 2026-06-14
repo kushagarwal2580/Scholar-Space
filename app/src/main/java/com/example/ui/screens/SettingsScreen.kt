@@ -466,25 +466,30 @@ fun SettingsScreen(
                             OutlinedButton(
                                 onClick = { 
                                     try {
+                                        val appVersion = com.example.BuildConfig.VERSION_NAME
+                                        val bodyStr = """
+                                            Description:
+                                            
+                                            
+                                            Device Info (Model, Android Version):
+                                            
+                                            
+                                            App Version:
+                                            ${"$"}{appVersion}
+                                            
+                                            
+                                            Upload Attachments:
+                                            (Please attach any screenshots or screen recordings to this email)
+                                        """.trimIndent()
+                                        
+                                        val encodedSubject = android.net.Uri.encode("Scholar Space Feedback - Topic (Bug/Feature/Other)")
+                                        val encodedBody = android.net.Uri.encode(bodyStr)
+                                        
                                         val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com")
+                                            data = android.net.Uri.parse("mailto:app.scholarspace@gmail.com?subject=${'$'}encodedSubject&body=${'$'}encodedBody") 
+                                            putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf("app.scholarspace@gmail.com"))
                                             putExtra(android.content.Intent.EXTRA_SUBJECT, "Scholar Space Feedback - Topic (Bug/Feature/Other)")
-                                            val appVersion = com.example.BuildConfig.VERSION_NAME
-                                            val body = """
-                                                Description:
-                                                
-                                                
-                                                Device Info (Model, Android Version):
-                                                
-                                                
-                                                App Version:
-                                                ${"$"}{appVersion}
-                                                
-                                                
-                                                Upload Attachments:
-                                                (Please attach any screenshots or screen recordings to this email)
-                                            """.trimIndent()
-                                            putExtra(android.content.Intent.EXTRA_TEXT, body)
+                                            putExtra(android.content.Intent.EXTRA_TEXT, bodyStr)
                                         }
                                         context.startActivity(intent)
                                     } catch (e: Exception) {

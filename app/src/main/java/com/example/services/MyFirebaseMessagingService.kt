@@ -45,12 +45,38 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val channelId = "fcm_default_channel"
+        
+        var largeIcon: android.graphics.Bitmap? = null
+        try {
+            val drawable = androidx.core.content.ContextCompat.getDrawable(this, R.mipmap.ic_launcher)
+            if (drawable is android.graphics.drawable.BitmapDrawable) {
+                largeIcon = drawable.bitmap
+            } else if (drawable != null) {
+                val bitmap = android.graphics.Bitmap.createBitmap(
+                    drawable.intrinsicWidth.takeIf { it > 0 } ?: 108,
+                    drawable.intrinsicHeight.takeIf { it > 0 } ?: 108,
+                    android.graphics.Bitmap.Config.ARGB_8888
+                )
+                val canvas = android.graphics.Canvas(bitmap)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                largeIcon = bitmap
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+        
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher_round)
+            .setSmallIcon(R.drawable.ic_stat_logo)
             .setContentTitle(title ?: "New Notification")
             .setContentText(messageBody ?: "")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(messageBody ?: ""))
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            
+        if (largeIcon != null) {
+            notificationBuilder.setLargeIcon(largeIcon)
+        }
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
