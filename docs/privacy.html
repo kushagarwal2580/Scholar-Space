@@ -12,17 +12,25 @@
             --primary-color: #22D3EE;
             --text-main: #FFFFFF;
             --text-secondary: #94A3B8;
+            --primary-hover: #06B6D4;
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Space Grotesk', system-ui, sans-serif;
+            font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
             justify-content: center;
             min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.15) 0%, transparent 55%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.15) 0%, transparent 65%),
+                radial-gradient(circle at 15% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 55%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 55%);
+            background-attachment: fixed;
         }
 
         .container {
@@ -37,12 +45,20 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-sizing: border-box;
+            animation: fadeUp 0.8s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         h1 {
             color: var(--primary-color);
             margin-top: 0;
             font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
         h2 {
@@ -56,6 +72,7 @@
             color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 16px;
+            font-size: 16px;
         }
 
         li {
@@ -65,10 +82,26 @@
         a {
             color: var(--primary-color);
             text-decoration: none;
+            transition: color 0.2s;
         }
 
         a:hover {
+            color: var(--primary-hover);
             text-decoration: underline;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 32px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--text-main);
+            text-decoration: none;
         }
     </style>
 </head>
@@ -107,7 +140,11 @@
         <p>We may update this Privacy Policy from time to time. The updated version will be indicated by the "Last Updated" date at the top of this page.</p>
 
         <h2>6. Contact Us</h2>
-        <p>If you have any questions about this Privacy Policy, please contact us by creating an issue on our <a href="https://github.com/kushagarwal2580/Scholar-Space">GitHub repository</a>.</p>
+        <p>If you have any questions about this Privacy Policy, please reach out to us using our <a href="feedback.html">Feedback & Support</a> form, or by creating an issue on our <a href="https://github.com/kushagarwal2580/Scholar-Space">GitHub repository</a>.</p>
+        
+        <div style="text-align: center;">
+            <a href="index.html" class="back-link">← Back to Home</a>
+        </div>
     </div>
 </body>
 </html>

@@ -441,7 +441,13 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             OutlinedButton(
-                                onClick = { uriHandler.openUri("https://scholarspace.xyz") },
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://scholarspace.xyz") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -453,7 +459,13 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             OutlinedButton(
-                                onClick = { uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") },
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://github.com/kushagarwal2580/Scholar-Space") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -465,7 +477,13 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Button(
-                                onClick = { uriHandler.openUri("https://razorpay.me/@scholarspace") },
+                                onClick = { 
+                                    try {
+                                        uriHandler.openUri("https://razorpay.me/@scholarspace") 
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "No browser app was found to open this link.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
