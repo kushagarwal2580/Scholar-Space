@@ -623,10 +623,11 @@ private fun MainAppContent(
                     androidx.compose.animation.AnimatedContent(
                         targetState = currentTab,
                         transitionSpec = {
-                            val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 180, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
-                            androidx.compose.animation.fadeIn(animationSpec = tweenSpec)
+                            val enterSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                            val exitSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                            (androidx.compose.animation.fadeIn(animationSpec = enterSpec) + androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = enterSpec))
                                 .togetherWith(
-                                    androidx.compose.animation.fadeOut(animationSpec = tweenSpec)
+                                    androidx.compose.animation.fadeOut(animationSpec = exitSpec) + androidx.compose.animation.scaleOut(targetScale = 0.95f, animationSpec = exitSpec)
                                 )
                         },
                         modifier = Modifier.fillMaxSize(),

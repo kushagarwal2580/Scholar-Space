@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
   alias(libs.plugins.android.application)
   // id("com.google.gms.google-services")
@@ -23,6 +25,12 @@ android {
   }
 
   signingConfigs {
+    val base64File = file("${rootDir}/debug.keystore.base64")
+    if (base64File.exists() && !file("${rootDir}/debug.keystore").exists()) {
+      val decoded = Base64.getDecoder().decode(base64File.readText().trim())
+      file("${rootDir}/debug.keystore").writeBytes(decoded)
+    }
+
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
