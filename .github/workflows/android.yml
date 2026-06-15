@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout Source Code
@@ -29,7 +31,7 @@ jobs:
         validate-wrappers: false
 
     - name: Decode Keystore
-      run: base64 -d debug.keystore.base64 > debug.keystore
+      run: if [ -f debug.keystore.base64 ]; then base64 -d debug.keystore.base64 > debug.keystore; fi
 
     - name: Build Debug APK
       run: gradle assembleDebug
