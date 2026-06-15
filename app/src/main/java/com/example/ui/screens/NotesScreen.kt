@@ -103,7 +103,7 @@ fun NotesScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "NotesRefreshRotation")
-    val rotation by infiniteTransition.animateFloat(
+    val rotationState = infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = androidx.compose.animation.core.infiniteRepeatable(
@@ -182,12 +182,18 @@ fun NotesScreen(
     
     val minHt = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
 
-    // Notes flat list layout
-    Box(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { focusManager.clearFocus() }) {
-        GlassBackground(
+    GlassBackground(
+        modifier = Modifier.fillMaxSize(),
+        drawBackgroundAndCircles = true
+    ) {
+        // Notes flat list layout
+        Box(
             modifier = Modifier
-                .fillMaxSize(),
-            drawBackgroundAndCircles = false
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null
+                ) { focusManager.clearFocus() }
         ) {
             Column(
                 modifier = Modifier
@@ -219,7 +225,7 @@ fun NotesScreen(
                         syncMessageText = syncMessageText,
                         syncMessageColor = syncMessageColor,
                         driveViewModel = driveViewModel,
-                        rotation = rotation,
+                        rotation = { rotationState.value },
                         coroutineScope = coroutineScope,
                         onSelectionChange = { isSelectionMode = it; if (!it) selectedNotes = emptySet() },
                         onSelectedNotesChange = { selectedNotes = it },
@@ -380,8 +386,7 @@ fun NotesScreen(
 
                     Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding() + 96.dp))
                 }
-        }
-    }
+            }
 
         // Floating Action Button in same position as other tabs
         val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
@@ -447,6 +452,7 @@ fun NotesScreen(
                     .padding(bottom = 24.dp + innerPadding.calculateBottomPadding(), end = 24.dp)
             )
         }
+    }
 
         // Full Screen Editor / Visual screen overlay for Add Note
         androidx.compose.animation.AnimatedVisibility(
@@ -574,6 +580,7 @@ fun FullScreenNoteEditor(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFF0F172A))
             .clickable(enabled = false) {} // block click propagation
     ) {
         GlassBackground(
@@ -732,31 +739,35 @@ fun FullScreenNoteEditor(
         }
 
         // Bottom Action buttons (Cancel / Save)
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(24.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            if (!isNewNote) {
-                TextButton(
-                    onClick = onCancel,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
-                ) {
-                    Text("Cancel", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-            }
-            Button(
-                onClick = onSave,
-                colors = ButtonDefaults.buttonColors(containerColor = Cyan500, contentColor = Color.Black),
-                shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.height(48.dp)
+            Row(
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                if (!isNewNote) {
+                    TextButton(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
+                    ) {
+                        Text("Cancel", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                }
+                Button(
+                    onClick = onSave,
+                    colors = ButtonDefaults.buttonColors(containerColor = Cyan500, contentColor = Color.Black),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                }
             }
         }
 
@@ -970,7 +981,7 @@ fun NotesHeader(
     syncMessageText: String,
     syncMessageColor: androidx.compose.ui.graphics.Color,
     driveViewModel: DriveViewModel,
-    rotation: Float,
+    rotation: () -> Float,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     onSelectionChange: (Boolean) -> Unit,
     onSelectedNotesChange: (Set<String>) -> Unit,
@@ -1131,7 +1142,7 @@ fun NotesHeader(
                             imageVector = if (showSyncCompleteMessage) Icons.Default.Check else Icons.Default.Refresh,
                             contentDescription = "Sync",
                             tint = iconTint,
-                            modifier = if (isRefreshing) Modifier.rotate(rotation) else Modifier
+                            modifier = if (isRefreshing) Modifier.graphicsLayer { rotationZ = rotation() } else Modifier
                         )
                     }
                 }

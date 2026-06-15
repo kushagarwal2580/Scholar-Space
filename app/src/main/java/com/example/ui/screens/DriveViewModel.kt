@@ -559,6 +559,9 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     private val _isMetadataSyncing = MutableStateFlow(false)
     val isMetadataSyncing: StateFlow<Boolean> = _isMetadataSyncing
 
+    private val _isDataSyncing = MutableStateFlow(false)
+    val isDataSyncing: StateFlow<Boolean> = _isDataSyncing
+
     fun syncMetadata(
         context: Context,
         authViewModel: AuthViewModel,
@@ -974,7 +977,13 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        if (_isDataSyncing.value) {
+            onComplete()
+            return
+        }
+
         viewModelScope.launch {
+            _isDataSyncing.value = true
             try {
                 val token = withContext(Dispatchers.IO) {
                     GoogleAuthUtil.getToken(
@@ -1167,6 +1176,8 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                     android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
                     onComplete()
                 }
+            } finally {
+                _isDataSyncing.value = false
             }
         }
     }

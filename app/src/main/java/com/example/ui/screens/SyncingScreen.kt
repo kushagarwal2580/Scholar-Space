@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,7 +24,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SyncingScreen(onFinished: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition()
-    val rotation by infiniteTransition.animateFloat(
+    val rotationState = infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
@@ -32,7 +33,7 @@ fun SyncingScreen(onFinished: () -> Unit) {
         )
     )
 
-    val scale by infiniteTransition.animateFloat(
+    val scaleState = infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.1f,
         animationSpec = infiniteRepeatable(
@@ -59,11 +60,14 @@ fun SyncingScreen(onFinished: () -> Unit) {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(140.dp)
-                    .scale(scale)
+                    .graphicsLayer {
+                        scaleX = scaleState.value
+                        scaleY = scaleState.value
+                    }
             ) {
                 // Google colored circular animation concept
                 // Outer ring with multiple segments
-                Canvas(modifier = Modifier.size(120.dp).rotate(rotation)) {
+                Canvas(modifier = Modifier.size(120.dp).graphicsLayer { rotationZ = rotationState.value }) {
                     val strokeWidth = 10.dp.toPx()
                     drawCircle(
                         brush = Brush.sweepGradient(

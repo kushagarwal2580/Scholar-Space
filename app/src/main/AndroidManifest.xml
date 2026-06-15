@@ -61,6 +61,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
         
+        <!-- Custom default notification icon for FCM / background notifications in status bar -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_logo" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/white" />
+        
         <receiver android:name=".ui.notifications.NotificationReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

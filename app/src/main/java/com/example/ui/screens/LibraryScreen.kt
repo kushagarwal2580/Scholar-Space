@@ -105,7 +105,7 @@ fun LibraryScreen(
     }
     
     val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition()
-    val rotation by infiniteTransition.animateFloat(
+    val rotationState = infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = androidx.compose.animation.core.infiniteRepeatable(
@@ -250,7 +250,7 @@ fun LibraryScreen(
                     currentFolderId = currentFolderId,
                     libraryViewModel = libraryViewModel,
                     driveViewModel = driveViewModel,
-                    rotation = rotation,
+                    rotation = { rotationState.value },
                     coroutineScope = coroutineScope,
                     onSelectionChange = { isSelectionMode = it; if (!it) selectedFiles = emptySet() },
                     onSelectedFilesChange = { selectedFiles = it },
@@ -909,7 +909,7 @@ fun LibraryHeader(
     currentFolderId: String?,
     libraryViewModel: LibraryViewModel,
     driveViewModel: DriveViewModel,
-    rotation: Float,
+    rotation: () -> Float,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     onSelectionChange: (Boolean) -> Unit,
     onSelectedFilesChange: (Set<String>) -> Unit,
@@ -1153,7 +1153,7 @@ fun LibraryHeader(
                             imageVector = if (showSyncCompleteMessage) Icons.Default.Check else Icons.Default.Refresh,
                             contentDescription = "Sync",
                             tint = iconTint,
-                            modifier = if (isRefreshing) Modifier.rotate(rotation) else Modifier
+                            modifier = if (isRefreshing) Modifier.graphicsLayer { rotationZ = rotation() } else Modifier
                         )
                     }
                 }

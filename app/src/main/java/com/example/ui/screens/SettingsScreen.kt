@@ -39,7 +39,8 @@ fun SettingsScreen(
     authViewModel: AuthViewModel? = null,
     libraryViewModel: LibraryViewModel,
     driveViewModel: DriveViewModel? = null,
-    innerPadding: PaddingValues = PaddingValues(0.dp)
+    innerPadding: PaddingValues = PaddingValues(0.dp),
+    onBack: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val fallbackFlow = remember { kotlinx.coroutines.flow.MutableStateFlow<AuthState>(AuthState.Idle) }
@@ -160,15 +161,27 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .height(64.dp)
                             .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (onBack != null) {
+                            androidx.compose.material3.IconButton(
+                                onClick = { onBack() },
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
                         Text(
-                            text = "Accounts and more",
+                            text = "Accounts & More",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
 

@@ -129,6 +129,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            window.let { win ->
+                val display = win.windowManager.defaultDisplay
+                val modes = display.supportedModes
+                val preferredMode = modes.maxByOrNull { it.refreshRate }
+                if (preferredMode != null) {
+                    val layoutParams = win.attributes
+                    layoutParams.preferredDisplayModeId = preferredMode.modeId
+                    win.attributes = layoutParams
+                }
+            }
+        }
+        
         try {
             if (com.google.firebase.FirebaseApp.getApps(this).isEmpty()) {
                 val options = com.google.firebase.FirebaseOptions.Builder()
@@ -179,6 +192,13 @@ class MainActivity : ComponentActivity() {
                 val authState by authViewModel.uiState.collectAsState()
                 val isSyncing by authViewModel.isSyncing.collectAsState()
                 val currentTab by libraryViewModel.currentTab.collectAsState()
+                var showSyncScreen by androidx.compose.runtime.remember { mutableStateOf(true) }
+                
+                LaunchedEffect(isSyncing) {
+                    if (isSyncing) {
+                        showSyncScreen = true
+                    }
+                }
                 
                 LaunchedEffect(currentTab) {
                     if (currentTab == "calendar") {
@@ -220,19 +240,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 
-                LaunchedEffect(activeAccount) {
+                val scholarSpaceFolderId by driveViewModel.scholarSpaceFolderId.collectAsState()
+                LaunchedEffect(activeAccount, scholarSpaceFolderId) {
                     if (previousAccount != activeAccount && previousAccount != null) {
                         libraryViewModel.clearFiles(this@MainActivity)
                     }
                     previousAccount = activeAccount
-                    if (activeAccount != null) {
+                    if (activeAccount != null && scholarSpaceFolderId != null) {
                         driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
                         driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false)
                         
                         libraryViewModel.onStateChangedListener = {
                             driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = true)
                         }
-                    } else {
+                    } else if (activeAccount == null) {
                         libraryViewModel.onStateChangedListener = null
                     }
                 }
@@ -274,6 +295,7 @@ class MainActivity : ComponentActivity() {
                         lastSyncedStatusMsg = null
                         lastSyncedNickname = null
                         lastSyncedProfilePic = null
+                        showSyncScreen = true
                     }
                 }
                 
@@ -293,8 +315,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Syncing Screen Animation State
-                var showSyncScreen by androidx.compose.runtime.remember { mutableStateOf(true) }
+                // Syncing Screen Animation State is declared above
                 
                 // GitHub Update Check State
                 var showUpdateDialog by androidx.compose.runtime.remember { mutableStateOf(false) }
@@ -579,10 +600,6 @@ private fun MainAppContent(
     driveViewModel: DriveViewModel,
     activity: MainActivity
 ) {
-    com.example.ui.components.GlassBackground(
-        modifier = Modifier.fillMaxSize(),
-        drawBackgroundAndCircles = true
-    ) {
         val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
         val isEditingNote by libraryViewModel.isEditingNote.collectAsState()
         Scaffold(
@@ -603,32 +620,14 @@ private fun MainAppContent(
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Pre-render LibraryScreen in background to avoid jank on first switch
-                    // Remains transparent and unclickable, structurally underneath AnimatedContent
-                    if (currentTab != "library") {
-                        androidx.compose.foundation.layout.Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .zIndex(-1f)
-                                .graphicsLayer { alpha = 0.001f }
-                        ) {
-                            com.example.ui.screens.LibraryScreen(
-                                libraryViewModel = libraryViewModel,
-                                driveViewModel = driveViewModel,
-                                innerPadding = customInnerPadding
-                            )
-                        }
-                    }
-
                     androidx.compose.animation.AnimatedContent(
                         targetState = currentTab,
                         transitionSpec = {
-                            val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                            (androidx.compose.animation.fadeIn(animationSpec = tweenSpec) + 
-                             androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = tweenSpec))
-                             .togetherWith(
-                                androidx.compose.animation.fadeOut(animationSpec = tweenSpec)
-                             )
+                            val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 180, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+                            androidx.compose.animation.fadeIn(animationSpec = tweenSpec)
+                                .togetherWith(
+                                    androidx.compose.animation.fadeOut(animationSpec = tweenSpec)
+                                )
                         },
                         modifier = Modifier.fillMaxSize(),
                         label = "tab_transition"
@@ -639,7 +638,8 @@ private fun MainAppContent(
                                     authViewModel = authViewModel,
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
-                                    innerPadding = customInnerPadding
+                                    innerPadding = customInnerPadding,
+                                    onBack = { libraryViewModel.setCurrentTab("dashboard") }
                                 )
                             }
                             "dashboard" -> {
@@ -746,7 +746,6 @@ private fun MainAppContent(
                 )
             }
         }
-    }
 }
 
 @androidx.compose.runtime.Composable

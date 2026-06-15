@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import com.example.ui.components.GlassBackground
 import com.example.ui.components.glassMorphic
 import java.io.File
@@ -46,6 +48,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.activity.compose.BackHandler
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(
     authViewModel: AuthViewModel? = null,
@@ -131,11 +134,7 @@ fun DashboardScreen(
         onDispose { connectivityManager.unregisterNetworkCallback(callback) }
     }
 
-    LaunchedEffect(isDriveConnected, scholarSpaceFolderId) {
-        if (isDriveConnected && scholarSpaceFolderId != null) {
-            driveViewModel.syncDriveData(context, libraryViewModel)
-        }
-    }
+
 
     val statFs = remember { android.os.StatFs(android.os.Environment.getDataDirectory().path) }
     val totalBytes = statFs.totalBytes
@@ -781,8 +780,11 @@ fun DashboardScreen(
                         if (isCompleted) {
                             libraryViewModel.togglePinDayCounter(pinnedCounter.id)
                         } else {
-                            showEventSelectionDialog = true
+                            onTabSelected("calendar")
                         }
+                    },
+                    onLongClick = {
+                        showEventSelectionDialog = true
                     }
                 ) {
                     if (isCompleted) {
@@ -833,9 +835,10 @@ fun DashboardScreen(
                     onClick = {
                         if (isCompleted) {
                             libraryViewModel.togglePinTimer(pinnedTimer.id)
-                        } else {
-                            showEventSelectionDialog = true
                         }
+                    },
+                    onLongClick = {
+                        showEventSelectionDialog = true
                     }
                 ) {
                     if (isCompleted) {
@@ -916,7 +919,8 @@ fun DashboardScreen(
 
                 FrostedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { showEventSelectionDialog = true }
+                    onClick = { /* stopwatch actions are handled inside */ },
+                    onLongClick = { showEventSelectionDialog = true }
                 ) {
                     Row(
                         modifier = Modifier
@@ -959,8 +963,11 @@ fun DashboardScreen(
                         if (isCompleted) {
                             libraryViewModel.togglePinReminder(pinnedReminderDateMillis, currentPinnedReminder.id)
                         } else {
-                            showEventSelectionDialog = true
+                            onTabSelected("calendar")
                         }
+                    },
+                    onLongClick = {
+                        showEventSelectionDialog = true
                     }
                 ) {
                     if (isCompleted) {
@@ -1004,7 +1011,8 @@ fun DashboardScreen(
             } else {
                 FrostedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { showEventSelectionDialog = true }
+                    onClick = { onTabSelected("calendar") },
+                    onLongClick = { showEventSelectionDialog = true }
                 ) {
                     Column(
                         verticalArrangement = Arrangement.Center,
@@ -1021,7 +1029,7 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "TAP TO SELECT SPOTLIGHT EVENT",
+                            text = "TAP & HOLD TO SELECT SPOTLIGHT",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Cyan300,
@@ -1357,7 +1365,17 @@ fun DashboardScreen(
                     if (hasNote1) {
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
-                            onClick = { showNoteSelectionDialogForSlot = 1 }
+                            onClick = {
+                                if (voiceNote1 != null) {
+                                    showAudioPlayDialogForNote = voiceNote1
+                                } else if (textNote1 != null) {
+                                    libraryViewModel.triggerOpenNoteDirectly(textNote1.id)
+                                    onTabSelected("notes")
+                                }
+                            },
+                            onLongClick = {
+                                showNoteSelectionDialogForSlot = 1
+                            }
                         ) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1395,32 +1413,36 @@ fun DashboardScreen(
                         }
                     } else {
                         // Slot 1 is Empty
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .glassMorphic(RoundedCornerShape(24.dp))
-                                .clickable { showNoteSelectionDialogForSlot = 1 },
-                            contentAlignment = Alignment.Center
+                        FrostedCard(
+                            modifier = Modifier.fillMaxSize(),
+                            onClick = { onTabSelected("notes") },
+                            onLongClick = { showNoteSelectionDialogForSlot = 1 }
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(12.dp)
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Pin Note",
-                                    tint = Cyan400.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Tap to Pin Notes",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Pin Note",
+                                        tint = Cyan400.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "TAP & HOLD TO PIN NOTES",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Cyan300,
+                                        letterSpacing = 1.5.sp,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     }
@@ -1435,7 +1457,17 @@ fun DashboardScreen(
                     if (hasNote2) {
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
-                            onClick = { showNoteSelectionDialogForSlot = 2 }
+                            onClick = {
+                                if (voiceNote2 != null) {
+                                    showAudioPlayDialogForNote = voiceNote2
+                                } else if (textNote2 != null) {
+                                    libraryViewModel.triggerOpenNoteDirectly(textNote2.id)
+                                    onTabSelected("notes")
+                                }
+                            },
+                            onLongClick = {
+                                showNoteSelectionDialogForSlot = 2
+                            }
                         ) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1473,32 +1505,36 @@ fun DashboardScreen(
                         }
                     } else {
                         // Slot 2 is Empty
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .glassMorphic(RoundedCornerShape(24.dp))
-                                .clickable { showNoteSelectionDialogForSlot = 2 },
-                            contentAlignment = Alignment.Center
+                        FrostedCard(
+                            modifier = Modifier.fillMaxSize(),
+                            onClick = { onTabSelected("notes") },
+                            onLongClick = { showNoteSelectionDialogForSlot = 2 }
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(12.dp)
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Pin Note",
-                                    tint = Cyan400.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Tap to Pin Notes",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Pin Note",
+                                        tint = Cyan400.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "TAP & HOLD TO PIN NOTES",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Cyan300,
+                                        letterSpacing = 1.5.sp,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     }
@@ -1911,16 +1947,21 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FrostedCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val cardModifier = if (onClick != null) {
+    val cardModifier = if (onClick != null || onLongClick != null) {
         modifier
             .glassMorphic(RoundedCornerShape(24.dp))
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = { onClick?.invoke() },
+                onLongClick = { onLongClick?.invoke() }
+            )
     } else {
         modifier
             .glassMorphic(RoundedCornerShape(24.dp))
@@ -2569,7 +2610,7 @@ fun AudioPlayDialog(
         onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(
             dismissOnBackPress = true,
-            dismissOnClickOutside = false,
+            dismissOnClickOutside = true,
             usePlatformDefaultWidth = false
         )
     ) {

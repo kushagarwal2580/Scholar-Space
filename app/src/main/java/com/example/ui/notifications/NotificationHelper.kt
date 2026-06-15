@@ -311,21 +311,20 @@ object NotificationHelper {
             manager.createNotificationChannel(channel)
         }
 
-        val app = context.applicationContext
-        val intent = android.content.Intent(app, com.example.MainActivity::class.java).apply {
+        val intent = android.content.Intent(context, com.example.MainActivity::class.java).apply {
             action = "com.example.ACTION_OPEN_CALENDAR"
             flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = android.app.PendingIntent.getActivity(
-            app, 
+            context, 
             987, 
             intent, 
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
-        val largeIcon = getBitmapFromVector(app, com.example.R.mipmap.ic_launcher)
+        val largeIcon = getBitmapFromVector(context, com.example.R.mipmap.ic_launcher)
 
-        val builder = NotificationCompat.Builder(app, "reminders_v4")
+        val builder = NotificationCompat.Builder(context, "reminders_v4")
             .setSmallIcon(com.example.R.drawable.ic_stat_logo)
             .setContentTitle(title)
             .setContentText(message)
@@ -347,7 +346,7 @@ object NotificationHelper {
             else -> (System.currentTimeMillis() % 10000).toInt()
         }
 
-        if (androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             manager.notify(notificationId, builder.build())
         }
     }
