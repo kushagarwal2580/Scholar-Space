@@ -84,7 +84,7 @@ fun FileViewerOverlay(
     val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     
     LaunchedEffect(currentStatusBarHeight, isLandscape) {
-        if (currentStatusBarHeight > 0.dp) {
+        if (currentStatusBarHeight > savedStatusBarHeight) {
             savedStatusBarHeight = currentStatusBarHeight
         } else if (isLandscape) {
             savedStatusBarHeight = 0.dp
@@ -95,7 +95,7 @@ fun FileViewerOverlay(
     var savedNavBarHeight by remember { mutableStateOf(0.dp) }
     
     LaunchedEffect(currentNavBarHeight, isLandscape) {
-        if (currentNavBarHeight > 0.dp) {
+        if (currentNavBarHeight > savedNavBarHeight) {
             savedNavBarHeight = currentNavBarHeight
         }
     }
@@ -823,7 +823,7 @@ private fun PdfViewer(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(top = topPadding, bottom = bottomPadding),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (pageCount > 1) {
