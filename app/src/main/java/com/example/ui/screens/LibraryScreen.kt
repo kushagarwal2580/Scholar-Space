@@ -243,34 +243,13 @@ fun LibraryScreen(
                     targetState = folderState,
                     contentKey = { it.currentFolderId ?: "root" },
                     transitionSpec = {
-                        val isEntering = initialState.currentFolderId == null && targetState.currentFolderId != null
-                        val isExiting = initialState.currentFolderId != null && targetState.currentFolderId == null
-                        
-                        // Default Android-like horizontal slide
-                        val duration = 300
-                        val tweenSpec = androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntOffset>(durationMillis = duration, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                        
-                        if (isEntering) {
-                            // slide in from right, slide out to left
-                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { it }.togetherWith(
-                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { -it }
-                            )
-                        } else if (isExiting) {
-                            // slide out to right, slide in from left
-                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { -it }.togetherWith(
-                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { it }
-                            )
-                        } else if (initialState.currentFolderId != targetState.currentFolderId) {
-                            // sibling folding sliding
-                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { it }.togetherWith(
-                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { -it }
-                            )
-                        } else {
-                            // simple fallback
-                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = duration)).togetherWith(
-                                androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = duration))
-                            )
-                        }
+                        val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 250, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                        (androidx.compose.animation.fadeIn(animationSpec = tweenSpec) +
+                         androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = tweenSpec))
+                        .togetherWith(
+                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 150, easing = androidx.compose.animation.core.LinearEasing)) +
+                            androidx.compose.animation.scaleOut(targetScale = 1.05f, animationSpec = tweenSpec)
+                        )
                     },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = androidx.compose.ui.Alignment.TopCenter,
