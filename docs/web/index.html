@@ -27,39 +27,53 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
             background-color: #0F172A !important;
             background-image: 
-                radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
-                radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.08) 0%, transparent 55%),
-                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.08) 0%, transparent 65%),
-                radial-gradient(circle at 15% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 55%),
-                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 55%) !important;
+                radial-gradient(circle closest-side at 85% 15%, rgba(99, 102, 241, 0.15), transparent 100%),
+                radial-gradient(circle closest-side at 10% 20%, rgba(217, 70, 239, 0.15), transparent 100%),
+                radial-gradient(circle closest-side at 85% 85%, rgba(168, 85, 247, 0.15), transparent 100%),
+                radial-gradient(circle closest-side at 15% 80%, rgba(14, 165, 233, 0.1), transparent 100%),
+                radial-gradient(circle closest-side at 50% 50%, rgba(139, 92, 246, 0.1), transparent 100%) !important;
             color: #F8FAFC !important;
+            margin: 0;
+            min-height: 100vh;
         }
         
         /* Glassmorphism Overrides */
-        .bg-white, .bg-gray-50, .bg-gray-100 {
-            background-color: rgba(255, 255, 255, 0.03) !important;
+        .bg-white, .bg-gray-50, .bg-gray-100, .bg-indigo-50 {
+            background-color: rgba(255, 255, 255, 0.05) !important;
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
         }
         
-        .border-gray-100, .border-gray-200, .border-gray-300 {
-            border-color: rgba(255, 255, 255, 0.08) !important;
+        button:hover.bg-white, button:hover.bg-gray-50, .hover\:bg-gray-50:hover, .hover\:bg-indigo-100:hover, .hover\:bg-gray-200:hover, .hover\:bg-gray-100:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .border-gray-100, .border-gray-200, .border-gray-300, .border-indigo-100 {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            border-width: 1px !important;
         }
 
-        .text-gray-800, .text-gray-700, .text-gray-600 {
+        .text-gray-800, .text-gray-700, .text-gray-600, .text-indigo-700, .text-indigo-600 {
             color: #F8FAFC !important;
         }
 
-        .text-gray-500, .text-gray-400, .text-gray-300 {
+        .text-gray-500, .text-gray-400, .text-gray-300, .text-indigo-400 {
             color: #94A3B8 !important;
         }
 
-        .bg-indigo-50, .hover\:bg-indigo-50:hover {
-            background-color: rgba(99, 102, 241, 0.1) !important;
+        input, textarea {
+            color: #F8FAFC !important;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #64748B !important;
+        }
+        
+        .shadow-sm, .shadow-md, .shadow-lg {
+            box-shadow: none !important;
         }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
+        .tab-content:not(.active) { display: none !important; }
+        .tab-content.active { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -87,10 +101,10 @@
     <!-- Sidebar -->
     <div class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 shrink-0">
         <div class="p-6 flex items-center gap-3 border-b border-gray-100">
-            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-200">
+            <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm border border-white/20">
                 S
             </div>
-            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Scholar Space</h1>
+            <h1 class="text-xl font-bold text-white tracking-wide">Scholar Space</h1>
         </div>
         
         <nav class="flex-1 overflow-y-auto py-4">
@@ -139,13 +153,13 @@
                     <span class="material-icons-outlined text-indigo-400">school</span>
                 </div>
                 <div>
-                    <h2 id="page-title" class="text-2xl font-bold text-gray-800">Scholar Space</h2>
-                    <p class="text-xs text-gray-400 hidden md:block">app.scholarspace@gmail.com</p>
+                    <h2 id="page-title" class="text-2xl font-bold text-white tracking-wide">Scholar Space</h2>
+                    <p class="text-xs text-indigo-200/60 hidden md:block">app.scholarspace@gmail.com</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 border-2 flex items-center justify-center cursor-pointer hover:bg-indigo-100 transition-colors">
+                <div class="w-10 h-10 bg-white/10 text-white rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-sm">
                     <span class="font-bold text-sm">S</span>
                 </div>
             </div>
@@ -256,10 +270,10 @@
             <div id="tab-library" class="tab-content max-w-6xl mx-auto">
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex gap-2">
-                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 hover:bg-indigo-700 font-medium shadow-sm transition-colors">
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 hover:bg-indigo-700 font-medium shadow-sm transition-colors backdrop-blur-md">
                             <span class="material-icons-outlined">add</span> Upload
                         </button>
-                        <button class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50 font-medium transition-colors">
+                        <button class="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg flex items-center gap-2 hover:bg-white/10 font-medium transition-colors backdrop-blur-md">
                             <span class="material-icons-outlined">create_new_folder</span> New Folder
                         </button>
                     </div>
@@ -267,22 +281,22 @@
 
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" id="library-grid">
                     <!-- Drop area / Upload -->
-                    <div class="border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/30 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-indigo-50/80 transition-colors text-indigo-600 group">
+                    <div class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
                         <span class="material-icons-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
                         <span class="font-medium text-sm">Drop files here</span>
                     </div>
 
                     <!-- Example File -->
-                    <div class="bg-white border text-left border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow flex flex-col group relative h-48">
-                        <div class="absolute right-2 top-2 p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md">
+                        <div class="absolute right-2 top-2 p-1 rounded-full text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
                             <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
                         </div>
                         <div class="flex-1 flex items-center justify-center p-4">
-                            <span class="material-icons-outlined text-red-500" style="font-size: 48px;">picture_as_pdf</span>
+                            <span class="material-icons-outlined text-red-400" style="font-size: 48px;">picture_as_pdf</span>
                         </div>
                         <div class="mt-4 shrink-0">
-                            <p class="font-medium text-gray-800 truncate text-sm">Mathematics.pdf</p>
-                            <p class="text-xs text-gray-500 mt-1">Local only</p>
+                            <p class="font-medium text-white truncate text-sm">Mathematics.pdf</p>
+                            <p class="text-xs text-gray-400 mt-1">Local only</p>
                         </div>
                     </div>
                 </div>
@@ -292,67 +306,56 @@
             <div id="tab-calendar" class="tab-content max-w-4xl mx-auto py-6 space-y-8">
                 <!-- Reminders -->
                 <div>
-                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
                         Reminders
-                        <button class="text-indigo-600 hover:bg-indigo-50 p-1 rounded"><span class="material-icons-outlined">add</span></button>
+                        <button class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
                     </h3>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
                         No reminders yet
                     </div>
                 </div>
 
                 <!-- Day Counters -->
                 <div>
-                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
                         Day Counters
-                        <button class="text-indigo-600 hover:bg-indigo-50 p-1 rounded"><span class="material-icons-outlined">add</span></button>
+                        <button class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
                     </h3>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
                         No day counters
-                    </div>
-                </div>
-
-                <!-- Stopwatches -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex justify-between items-center">
-                        Stopwatches
-                        <button class="text-indigo-600 hover:bg-indigo-50 p-1 rounded"><span class="material-icons-outlined">add</span></button>
-                    </h3>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400">
-                        No stopwatches
                     </div>
                 </div>
 
                 <!-- Countdown Timers -->
                 <div>
-                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
                         Countdown Timers
-                        <button class="text-indigo-600 hover:bg-indigo-50 p-1 rounded"><span class="material-icons-outlined">add</span></button>
+                        <button class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
                     </h3>
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col items-center">
-                        <div class="flex gap-2 mb-8 bg-gray-100 p-1.5 rounded-full">
-                            <button onclick="setTimerType('pomodoro')" id="btn-pomodoro" class="px-6 py-2 rounded-full bg-white text-gray-800 shadow-sm font-medium transition-all">Pomodoro</button>
-                            <button onclick="setTimerType('short')" id="btn-short" class="px-6 py-2 rounded-full text-gray-500 font-medium hover:text-gray-800 transition-all">Short Break</button>
-                            <button onclick="setTimerType('long')" id="btn-long" class="px-6 py-2 rounded-full text-gray-500 font-medium hover:text-gray-800 transition-all">Long Break</button>
+                    <div class="bg-white/5 rounded-3xl border border-white/10 p-8 flex flex-col items-center backdrop-blur-md">
+                        <div class="flex gap-2 mb-8 bg-black/20 p-1.5 rounded-full border border-white/5">
+                            <button onclick="setTimerType('pomodoro')" id="btn-pomodoro" class="px-6 py-2 rounded-full bg-white/10 text-white shadow-sm font-medium transition-all">Pomodoro</button>
+                            <button onclick="setTimerType('short')" id="btn-short" class="px-6 py-2 rounded-full text-gray-400 font-medium hover:text-white transition-all">Short Break</button>
+                            <button onclick="setTimerType('long')" id="btn-long" class="px-6 py-2 rounded-full text-gray-400 font-medium hover:text-white transition-all">Long Break</button>
                         </div>
 
-                        <div class="relative w-64 h-64 rounded-full flex items-center justify-center border-8 border-indigo-50 mb-8 select-none cursor-pointer group">
+                        <div class="relative w-64 h-64 rounded-full flex items-center justify-center border-8 border-indigo-900/30 mb-8 select-none cursor-pointer group">
                             <!-- Progress Ring -->
                             <svg class="absolute top-0 left-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="46" fill="transparent" stroke="#E0E7FF" stroke-width="8" />
-                                <circle id="timer-progress" cx="50" cy="50" r="46" fill="transparent" stroke="#4F46E5" stroke-width="8" stroke-dasharray="289" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-1000 ease-linear"/>
+                                <circle cx="50" cy="50" r="46" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
+                                <circle id="timer-progress" cx="50" cy="50" r="46" fill="transparent" stroke="#6366f1" stroke-width="8" stroke-dasharray="289" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-1000 ease-linear"/>
                             </svg>
-                            <h1 id="timer-display" class="text-6xl font-bold font-mono text-gray-800 z-10 tracking-tighter">25:00</h1>
+                            <h1 id="timer-display" class="text-6xl font-bold font-mono text-white z-10 tracking-tighter">25:00</h1>
                         </div>
 
                         <div class="flex items-center gap-6">
-                            <button onclick="resetTimer()" title="Reset Timer" class="w-14 h-14 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                            <button onclick="resetTimer()" title="Reset Timer" class="w-14 h-14 rounded-full bg-white/5 text-gray-300 flex items-center justify-center hover:bg-white/10 transition-colors">
                                 <span class="material-icons-outlined">refresh</span>
                             </button>
-                            <button onclick="toggleTimer()" id="btn-play" class="w-20 h-20 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-colors transform hover:scale-105 active:scale-95">
+                            <button onclick="toggleTimer()" id="btn-play" class="w-20 h-20 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-500 shadow-xl shadow-indigo-900/20 transition-colors transform hover:scale-105 active:scale-95">
                                 <span id="play-icon" class="material-icons-outlined text-4xl">play_arrow</span>
                             </button>
-                            <button class="w-14 h-14 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                            <button class="w-14 h-14 rounded-full bg-white/5 text-gray-300 flex items-center justify-center hover:bg-white/10 transition-colors">
                                 <span class="material-icons-outlined">settings</span>
                             </button>
                         </div>
@@ -376,15 +379,15 @@
                     </div>
                     <!-- Note Editor -->
                     <div id="note-editor" class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden opacity-100 transition-opacity">
-                        <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                            <input id="note-title" oninput="saveCurrentNote();" type="text" class="text-2xl font-bold bg-transparent outline-none w-full text-gray-800" placeholder="Note Title...">
+                        <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+                            <input id="note-title" oninput="saveCurrentNote();" type="text" class="text-2xl font-bold bg-transparent outline-none w-full text-white" placeholder="Note Title...">
                             <div class="flex gap-3 text-gray-400 pl-4 shrink-0">
-                                <button onclick="deleteCurrentNote()" class="hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete Note">
+                                <button onclick="deleteCurrentNote()" class="hover:text-red-400 p-2 hover:bg-white/10 rounded-lg transition-colors" title="Delete Note">
                                     <span class="material-icons-outlined">delete</span>
                                 </button>
                             </div>
                         </div>
-                        <textarea id="note-body" oninput="saveCurrentNote();" class="flex-1 p-8 resize-none outline-none text-gray-700 bg-transparent leading-relaxed text-lg" placeholder="Start typing..."></textarea>
+                        <textarea id="note-body" oninput="saveCurrentNote();" class="flex-1 p-8 resize-none outline-none text-gray-300 bg-transparent leading-relaxed text-lg" placeholder="Start typing..."></textarea>
                     </div>
                 </div>
             </div>
@@ -392,50 +395,42 @@
             <!-- Settings / Sync Tab -->
             <div id="tab-settings" class="tab-content max-w-2xl mx-auto space-y-6">
                 
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50">
-                        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md">
+                    <div class="p-6 border-b border-white/10 bg-black/10">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" class="w-6 h-6"> 
                             Google Drive Sync
                         </h3>
-                        <p class="text-sm text-gray-500 mt-2">Sync your library, notes, and preferences across devices using your own Google Drive storage safely.</p>
+                        <p class="text-sm text-gray-400 mt-2">Sync your library, notes, and preferences across devices using your own Google Drive storage safely.</p>
                     </div>
-                    <div class="p-10 text-center flex flex-col items-center text-gray-600 bg-white">
-                        <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
-                            <span class="material-icons-outlined text-4xl text-gray-300">cloud_off</span>
+                    <div class="p-10 text-center flex flex-col items-center text-gray-300">
+                        <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10">
+                            <span class="material-icons-outlined text-4xl text-gray-400">cloud_off</span>
                         </div>
-                        <h4 class="font-semibold text-gray-800 mb-2 text-lg">Not Connected</h4>
+                        <h4 class="font-semibold text-white mb-2 text-lg">Not Connected</h4>
                         <p class="text-sm text-gray-500 mb-8 max-w-sm">Connect your account to enable automatic backup and sync with Scholar Space web platform.</p>
                         
-                        <button class="px-6 py-3 bg-white border border-gray-300 rounded-xl flex items-center gap-3 font-medium hover:bg-gray-50 text-gray-700 transition-colors shadow-sm">
+                        <button class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-3 font-medium hover:bg-white/10 text-white transition-colors backdrop-blur-sm">
                             <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.64 12.204c0-.638-.057-1.251-.164-1.841H12v3.481h6.521c-.281 1.125-.851 2.079-1.637 2.735v2.271h2.651c1.551-1.428 2.445-3.532 2.445-5.926h-.34z"/><path fill="#34A853" d="M12 24c3.273 0 6.014-1.084 8.018-2.936l-2.651-2.271c-1.086.729-2.476 1.162-5.367 1.162-4.135 0-7.636-2.793-8.887-6.55H.416v2.339C2.425 20.268 6.88 24 12 24z"/><path fill="#FBBC05" d="M3.113 14.894c-.318-.948-.5-1.956-.5-2.984s.182-2.036.5-2.984V6.587H.416A11.956 11.956 0 0 0 0 11.91c0 1.93.461 3.758 1.284 5.378l1.829-2.394z"/><path fill="#EA4335" d="M12 4.79c1.777 0 3.375.611 4.629 1.8l3.435-3.434C18.006 1.218 15.265.02 12 .02 6.88.02 2.425 3.753.416 7.728l2.697 2.339c1.251-3.757 4.752-6.551 8.887-6.551z"/></svg>
                             Connect Google Drive
                         </button>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100">
-                        <h3 class="font-semibold text-gray-800 text-lg">App Preferences</h3>
+                <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md">
+                    <div class="p-6 border-b border-white/10">
+                        <h3 class="font-semibold text-white text-lg">App Preferences</h3>
                     </div>
-                    <div class="divide-y divide-gray-100">
-                        <div class="p-5 px-6 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div class="divide-y divide-white/5">
+                        <div class="p-5 px-6 flex items-center justify-between hover:bg-white/10 cursor-pointer transition-colors">
                             <div>
-                                <h4 class="font-medium text-gray-800 text-sm">Theme Mode</h4>
-                                <p class="text-xs text-gray-500 mt-1">Light Mode</p>
-                            </div>
-                            <span class="material-icons-outlined text-gray-400">light_mode</span>
-                        </div>
-                        <div class="p-5 px-6 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
-                            <div>
-                                <h4 class="font-medium text-gray-800 text-sm">Clear Local Data</h4>
+                                <h4 class="font-medium text-white text-sm">Clear Local Data</h4>
                                 <p class="text-xs text-gray-500 mt-1">Wipe notes, timers and local settings.</p>
                             </div>
-                            <button onclick="clearLocalData()" class="px-4 py-2 border border-red-200 text-red-600 rounded drop-shadow-sm bg-white hover:bg-red-50 text-sm font-medium">Clear Data</button>
+                            <button onclick="clearLocalData()" class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg backdrop-blur-sm hover:bg-red-500/20 text-sm font-medium transition-colors">Clear Data</button>
                         </div>
                     </div>
                 </div>
-
             </div>
             
             </div>
