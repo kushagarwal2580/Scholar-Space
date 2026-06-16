@@ -7,7 +7,7 @@
     <title>Scholar Space</title>
     <!-- Use Google Fonts for typography -->
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #0F172A;
@@ -21,7 +21,7 @@
         body {
             margin: 0;
             padding: 40px 0;
-            font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
@@ -58,8 +58,8 @@
         /* Responsive Layout Removed */
         .container {
             text-align: center;
-            max-width: 900px;
-            width: 90%;
+            max-width: 1000px;
+            width: 92%;
             margin: 0 auto 40px;
             padding: 40px 32px;
             background: var(--card-bg);
@@ -80,8 +80,8 @@
         }
 
         .logo-container {
-            width: 108px;
-            height: 108px;
+            width: 144px;
+            height: 144px;
             background-color: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 28px;
@@ -168,8 +168,8 @@
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 900px;
-            width: 90%;
+            max-width: 1000px;
+            width: 92%;
             margin: 0 auto 40px;
             box-sizing: border-box;
             animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
@@ -201,19 +201,21 @@
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            padding: 24px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
+            padding: 28px 24px;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
             gap: 16px;
-            transition: transform 0.3s ease, background 0.3s ease;
+            transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
             height: 100%;
             box-sizing: border-box;
         }
 
         .feature-item:hover {
             transform: translateY(-4px);
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(34, 211, 238, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
 
         .feature-icon {
@@ -233,7 +235,8 @@
 
         .feature-text h3 {
             margin: 0 0 8px 0;
-            font-size: 18px;
+            font-size: 19px;
+            font-weight: 600;
             color: var(--text-main);
         }
 
@@ -258,8 +261,8 @@
     <div class="container">
         <!-- Center Logo Frame -->
         <div class="logo-container">
-            <svg viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 108px; height: 108px;">
-                <g style="transform-origin: center; transform: scale(0.75);">
+            <svg viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 144px; height: 144px;">
+                <g style="transform-origin: center; transform: scale(0.95);">
                     <path fill="#6366F1" d="M54 24 L84 39 L54 54 L24 39 Z" />
                     <path fill="#4F46E5" d="M24 49 L54 64 L84 49 L84 59 L54 74 L24 59 Z" />
                     <path fill="#06B6D4" d="M34 69 L54 79 L74 69 L74 74 L54 84 L34 74 Z" />
@@ -356,6 +359,48 @@
             <div class="feature-text">
                 <h3>Profile Management</h3>
                 <p>Customize your student profile with notes, statuses, and personal study goals.</p>
+            </div>
+        </div>
+
+        <div class="feature-item">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            </div>
+            <div class="feature-text">
+                <h3>Study Schedules</h3>
+                <p>Plan your studying effortlessly. Organize your classes, assignments, and tasks directly within the app.</p>
+            </div>
+        </div>
+
+        <div class="feature-item">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"></path>
+                    <path d="m19 9-5 5-4-4-3 3"></path>
+                    <path d="M19 9v6"></path>
+                    <path d="M19 9h-6"></path>
+                </svg>
+            </div>
+            <div class="feature-text">
+                <h3>Performance Analytics</h3>
+                <p>Track your daily productivity and clearly visualize your study progress with built-in charts and insights.</p>
+            </div>
+        </div>
+
+        <div class="feature-item">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+            </div>
+            <div class="feature-text">
+                <h3>Offline Support</h3>
+                <p>Access your notes and materials fully offline. The app functions optimally without needing an internet connection.</p>
             </div>
         </div>
         </div>
