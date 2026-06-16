@@ -81,7 +81,17 @@
         .nav-item.active {
             background-color: rgba(99, 102, 241, 0.15) !important;
             color: #818CF8 !important;
-            border-left: 4px solid #818CF8;
+        }
+        @media (min-width: 768px) {
+            .nav-item.active {
+                border-left: 4px solid #818CF8;
+            }
+        }
+        @media (max-width: 767px) {
+            .nav-item.active {
+                border-top: 3px solid #818CF8;
+                background-color: transparent !important;
+            }
         }
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
@@ -96,10 +106,18 @@
         }
     </style>
 </head>
-<body class="h-screen flex overflow-hidden">
+<body class="h-screen flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0">
 
-    <!-- Sidebar -->
-    <div class="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 shrink-0">
+    <!-- Mobile Header -->
+    <div class="md:hidden w-full bg-white/5 backdrop-blur-md border-b border-white/10 p-4 flex items-center gap-3 shrink-0 z-20">
+        <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white font-bold text-lg border border-white/20">
+            S
+        </div>
+        <h1 class="text-lg font-bold text-white tracking-wide">Scholar Space</h1>
+    </div>
+
+    <!-- Desktop Sidebar -->
+    <div class="hidden md:flex w-64 bg-white/5 backdrop-blur-md border-r border-white/10 flex-col shadow-sm z-10 shrink-0">
         <div class="p-6 flex items-center gap-3 border-b border-gray-100">
             <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm border border-white/20">
                 S
@@ -144,10 +162,34 @@
         </div>
     </div>
 
+    <!-- Mobile Bottom Navigation -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-[#0F172A]/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center h-16 z-50">
+        <button onclick="switchTab('dashboard')" class="nav-item active flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
+            <span class="material-icons-outlined text-xl mb-1">dashboard</span>
+            <span class="text-[10px]">Dashboard</span>
+        </button>
+        <button onclick="switchTab('library')" class="nav-item flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
+            <span class="material-icons-outlined text-xl mb-1">folder</span>
+            <span class="text-[10px]">Library</span>
+        </button>
+        <button onclick="switchTab('notes')" class="nav-item flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
+            <span class="material-icons-outlined text-xl mb-1">edit_note</span>
+            <span class="text-[10px]">Notes</span>
+        </button>
+        <button onclick="switchTab('calendar')" class="nav-item flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
+            <span class="material-icons-outlined text-xl mb-1">calendar_today</span>
+            <span class="text-[10px]">Calendar</span>
+        </button>
+        <button onclick="switchTab('settings')" class="nav-item flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
+            <span class="material-icons-outlined text-xl mb-1">settings</span>
+            <span class="text-[10px]">Settings</span>
+        </button>
+    </div>
+
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <!-- Top App Bar -->
-        <header class="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 shrink-0 relative z-10 w-full">
+        <header class="hidden md:flex h-20 bg-white/5 backdrop-blur-md border-b border-white/10 items-center justify-between px-6 shrink-0 relative z-10 w-full">
             <div class="flex items-center gap-4">
                 <div class="md:hidden flex items-center justify-center w-12 h-12 bg-gray-100 rounded-2xl">
                     <span class="material-icons-outlined text-indigo-400">school</span>
@@ -442,8 +484,7 @@
         // Global State & Navigation
         function switchTab(tabId) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const navBtn = document.querySelector(`.nav-item[onclick*="'${tabId}'"]`);
-            if(navBtn) navBtn.classList.add('active');
+            document.querySelectorAll(`.nav-item[onclick*="'${tabId}'"]`).forEach(el => el.classList.add('active'));
             
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
