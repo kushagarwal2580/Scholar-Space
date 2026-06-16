@@ -165,9 +165,55 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     var isAppInForeground = false
         private set
 
+    private fun adjustTimersForElapsedTime() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val jsonStr = prefs.getString("app_state", null)
+            if (jsonStr != null) {
+                try {
+                    val data = json.decodeFromString<AppStateData>(jsonStr)
+                    val elapsedSeconds = ((System.currentTimeMillis() - data.timestamp) / 1000).toInt()
+                    val calendarElapsedDays = java.time.temporal.ChronoUnit.DAYS.between(
+                        java.time.Instant.ofEpochMilli(data.timestamp).atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
+                        java.time.LocalDate.now()
+                    ).toInt()
+                    val nowDate = java.time.LocalDate.now()
+
+                    _timers.value = data.timers.map {
+                        if (it.isRunning) {
+                            val newTime = (it.timeRemaining - elapsedSeconds).coerceAtLeast(0)
+                            val isStillRunning = newTime > 0
+                            it.copy(timeRemaining = newTime, isRunning = isStillRunning)
+                        } else {
+                            it
+                        }
+                    }
+
+                    _dayCounters.value = data.dayCounters.map {
+                        if (it.targetDateMillis > 0L) {
+                            val targetDate = java.time.Instant.ofEpochMilli(it.targetDateMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                            val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(nowDate, targetDate).toInt().coerceAtLeast(0)
+                            it.copy(daysLeft = daysRemaining)
+                        } else if (calendarElapsedDays > 0) {
+                            it.copy(daysLeft = (it.daysLeft - calendarElapsedDays).coerceAtLeast(0), targetDateMillis = nowDate.plusDays((it.daysLeft - calendarElapsedDays).coerceAtLeast(0).toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                        } else {
+                            it.copy(targetDateMillis = nowDate.plusDays(it.daysLeft.toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Ignore
+                }
+            }
+        }
+    }
+
     fun onAppResume() {
         isAppInForeground = true
-        loadData()
+        // Comment out loadData() to avoid race condition where resuming from file picker 
+        // overwrites the freshly added LibraryItem from memory with older JSON cache.
+        // loadData() 
+        
+        // Adjust timers based on elapsed time without wiping out memory state
+        adjustTimersForElapsedTime()
         
         // Cancel all active running notifications immediately
         val app = getApplication<Application>()
