@@ -106,19 +106,24 @@
         }
     </style>
 </head>
-<body class="h-screen flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0">
+<body class="h-screen flex flex-col lg:flex-row overflow-hidden pb-16 lg:pb-0">
 
     <!-- Mobile Header -->
-    <div class="md:hidden w-full bg-white/5 backdrop-blur-md border-b border-white/10 p-4 flex items-center gap-3 shrink-0 z-20">
-        <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white font-bold text-lg border border-white/20">
-            S
+    <div class="lg:hidden w-full bg-white/5 backdrop-blur-md border-b border-white/10 p-4 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white font-bold text-lg border border-white/20">
+                S
+            </div>
+            <h1 class="text-lg font-bold text-white tracking-wide">Scholar Space</h1>
         </div>
-        <h1 class="text-lg font-bold text-white tracking-wide">Scholar Space</h1>
+        <div onclick="switchTab('settings')" class="w-8 h-8 bg-white/10 text-white rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-sm">
+            <span class="font-bold text-sm">S</span>
+        </div>
     </div>
 
     <!-- Desktop Sidebar -->
-    <div class="hidden md:flex w-64 bg-white/5 backdrop-blur-md border-r border-white/10 flex-col shadow-sm z-10 shrink-0">
-        <div class="p-6 flex items-center gap-3 border-b border-gray-100">
+    <div class="hidden lg:flex w-64 bg-white/5 backdrop-blur-md border-r border-white/10 flex-col shadow-sm z-10 shrink-0">
+        <div class="p-6 flex items-center gap-3 border-b border-white/10">
             <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm border border-white/20">
                 S
             </div>
@@ -128,42 +133,35 @@
         <nav class="flex-1 overflow-y-auto py-4">
             <ul class="space-y-1 px-3">
                 <li>
-                    <button onclick="switchTab('dashboard')" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-left">
+                    <button onclick="switchTab('dashboard')" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left">
                         <span class="material-icons-outlined">dashboard</span>
                         Dashboard
                     </button>
                 </li>
                 <li>
-                    <button onclick="switchTab('library')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-left">
+                    <button onclick="switchTab('library')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left">
                         <span class="material-icons-outlined">folder</span>
                         Library
                     </button>
                 </li>
                 <li>
-                    <button onclick="switchTab('notes')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-left">
+                    <button onclick="switchTab('notes')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left">
                         <span class="material-icons-outlined">edit_note</span>
                         Notes
                     </button>
                 </li>
                 <li>
-                    <button onclick="switchTab('calendar')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-left">
+                    <button onclick="switchTab('calendar')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-left">
                         <span class="material-icons-outlined">calendar_today</span>
                         Calendar
                     </button>
                 </li>
             </ul>
         </nav>
-        
-        <div class="p-4 border-t border-gray-200">
-            <button onclick="switchTab('settings')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-left">
-                <span class="material-icons-outlined">settings</span>
-                Settings
-            </button>
-        </div>
     </div>
 
     <!-- Mobile Bottom Navigation -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-[#0F172A]/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center h-16 z-50">
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0F172A]/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center h-16 z-50">
         <button onclick="switchTab('dashboard')" class="nav-item active flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
             <span class="material-icons-outlined text-xl mb-1">dashboard</span>
             <span class="text-[10px]">Dashboard</span>
@@ -180,28 +178,24 @@
             <span class="material-icons-outlined text-xl mb-1">calendar_today</span>
             <span class="text-[10px]">Calendar</span>
         </button>
-        <button onclick="switchTab('settings')" class="nav-item flex-1 flex flex-col items-center justify-center h-full text-indigo-200/50 hover:text-white transition-colors">
-            <span class="material-icons-outlined text-xl mb-1">settings</span>
-            <span class="text-[10px]">Settings</span>
-        </button>
     </div>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <!-- Top App Bar -->
-        <header class="hidden md:flex h-20 bg-white/5 backdrop-blur-md border-b border-white/10 items-center justify-between px-6 shrink-0 relative z-10 w-full">
+        <header class="hidden lg:flex h-20 bg-white/5 backdrop-blur-md border-b border-white/10 items-center justify-between px-6 shrink-0 relative z-10 w-full">
             <div class="flex items-center gap-4">
-                <div class="md:hidden flex items-center justify-center w-12 h-12 bg-gray-100 rounded-2xl">
+                <div class="lg:hidden flex items-center justify-center w-12 h-12 bg-gray-100 rounded-2xl">
                     <span class="material-icons-outlined text-indigo-400">school</span>
                 </div>
                 <div>
                     <h2 id="page-title" class="text-2xl font-bold text-white tracking-wide">Scholar Space</h2>
-                    <p class="text-xs text-indigo-200/60 hidden md:block">app.scholarspace@gmail.com</p>
+                    <p class="text-xs text-indigo-200/60 hidden lg:block">app.scholarspace@gmail.com</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 bg-white/10 text-white rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-sm">
+                <div onclick="switchTab('settings')" class="w-10 h-10 bg-white/10 text-white rounded-full border border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-sm">
                     <span class="font-bold text-sm">S</span>
                 </div>
             </div>
