@@ -822,6 +822,7 @@ private fun PdfViewer(
             ) {
                 androidx.compose.foundation.lazy.LazyColumn(
                     state = listState,
+                    userScrollEnabled = !isZoomed,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(top = topPadding, bottom = bottomPadding),
                     verticalArrangement = Arrangement.Top,
