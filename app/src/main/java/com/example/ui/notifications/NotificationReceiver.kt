@@ -14,7 +14,7 @@ import kotlinx.serialization.encodeToString
 
 class NotificationReceiver : BroadcastReceiver() {
     companion object {
-        private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true; isLenient = true; explicitNulls = false }
 
         fun scheduleNextAlarm(context: Context) {
             try {

@@ -127,6 +127,8 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         ignoreUnknownKeys = true 
         encodeDefaults = true
         isLenient = true
+        coerceInputValues = true
+        explicitNulls = false
     }
     private val driveService by lazy {
         try {
@@ -666,9 +668,17 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                 // 3. Search for scholarspace_metadata.json inside App Data
                 val fileName = "scholarspace_metadata.json"
                 val fileSearch = driveService?.searchFiles("Bearer $token", "name = '$fileName' and '$appDataFolderId' in parents and trashed = false")
-                val driveFileId = fileSearch?.files?.firstOrNull()?.id
+                
+                val sortedFiles = fileSearch?.files?.sortedByDescending { it.createdTime }
                 
                 if (isUpload) {
+                    val driveFileId = sortedFiles?.firstOrNull()?.id
+                    if (sortedFiles != null && sortedFiles.size > 1) {
+                        for (i in 1 until sortedFiles.size) {
+                            try { sortedFiles[i].id?.let { driveService?.deleteFile("Bearer $token", it) } } catch (e: Exception) {}
+                        }
+                    }
+                    
                     // Gather up-to-date local data
                     val appState = libraryViewModel.getAppStateData()
                     val authState = authViewModel.uiState.value
@@ -716,10 +726,15 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                     // Upload or Update JSON content
                     val response = if (driveFileId != null) {
                         try {
-                            driveService?.updateFileContent("Bearer $token", driveFileId, metadataPart, filePart)
+                            val updateMeta = """{"name": "$fileName"}"""
+                            val updateMetaBody = okhttp3.RequestBody.create("application/json; charset=UTF-8".toMediaType(), updateMeta)
+                            val updateMetaPart = okhttp3.MultipartBody.Part.createFormData("metadata", null, updateMetaBody)
+                            driveService?.updateFileContent("Bearer $token", driveFileId, updateMetaPart, filePart)
                         } catch (e: Exception) {
                             Log.w("DriveViewModel", "Could not update file, trying create instead", e)
-                            driveService?.uploadFile("Bearer $token", metadataPart, filePart)
+                            val uploaded = driveService?.uploadFile("Bearer $token", metadataPart, filePart)
+                            try { driveService?.deleteFile("Bearer $token", driveFileId) } catch (delEx: Exception) {}
+                            uploaded
                         }
                     } else {
                         driveService?.uploadFile("Bearer $token", metadataPart, filePart)
@@ -734,7 +749,13 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                         val profName = "profile_pic.jpg"
                         try {
                             val profSearch = driveService?.searchFiles("Bearer $token", "name = '$profName' and '$appDataFolderId' in parents and trashed = false")
-                            val profDriveId = profSearch?.files?.firstOrNull()?.id
+                            val sortedProfFiles = profSearch?.files?.sortedByDescending { it.createdTime }
+                            val profDriveId = sortedProfFiles?.firstOrNull()?.id
+                            if (sortedProfFiles != null && sortedProfFiles.size > 1) {
+                                for (i in 1 until sortedProfFiles.size) {
+                                    try { sortedProfFiles[i].id?.let { driveService?.deleteFile("Bearer $token", it) } } catch(e: Exception){}
+                                }
+                            }
 
                             if (localProfilePic != null && localProfilePic.startsWith("file:")) {
                                 val fileSrc = try {
@@ -758,9 +779,13 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                                     
                                     if (profDriveId != null) {
                                         try {
-                                            driveService?.updateFileContent("Bearer $token", profDriveId, profMetaPart, profPart)
+                                            val profMetaUpdate = """{"name": "$profName"}"""
+                                            val updateBody = okhttp3.RequestBody.create("application/json; charset=UTF-8".toMediaType(), profMetaUpdate)
+                                            val updatePart = okhttp3.MultipartBody.Part.createFormData("metadata", null, updateBody)
+                                            driveService?.updateFileContent("Bearer $token", profDriveId, updatePart, profPart)
                                         } catch (e: Exception) {
                                             driveService?.uploadFile("Bearer $token", profMetaPart, profPart)
+                                            try { driveService?.deleteFile("Bearer $token", profDriveId) } catch (delEx: Exception) {}
                                         }
                                     } else {
                                         driveService?.uploadFile("Bearer $token", profMetaPart, profPart)
@@ -779,35 +804,53 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                     onComplete(true)
                 } else {
                     // Download and restore from Drive
-                    if (driveFileId != null) {
-                        val responseBody = driveService?.downloadFile("Bearer $token", driveFileId)
-                        val jsonString = withContext(Dispatchers.IO) {
-                            responseBody?.string()
+                    if (sortedFiles != null && sortedFiles.isNotEmpty()) {
+                        var syncData: ScholarSpaceSyncData? = null
+                        var validDriveFileId: String? = null
+                        
+                        for (fileObj in sortedFiles) {
+                            val fId = fileObj.id ?: continue
+                            val responseBody = driveService?.downloadFile("Bearer $token", fId)
+                            val jsonString = withContext(Dispatchers.IO) {
+                                responseBody?.string()
+                            }
+                            if (!jsonString.isNullOrBlank()) {
+                                syncData = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        json.decodeFromString(ScholarSpaceSyncData.serializer(), jsonString)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("DriveViewModel", "JSON decode error. Maybe corrupted.", e)
+                                        null
+                                    }
+                                }
+                                if (syncData != null) {
+                                    validDriveFileId = fId
+                                    break
+                                }
+                            }
                         }
-                        if (!jsonString.isNullOrBlank()) {
-                            val syncData = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                try {
-                                    json.decodeFromString(ScholarSpaceSyncData.serializer(), jsonString)
-                                } catch (e: Exception) {
-                                    android.util.Log.e("DriveViewModel", "JSON decode error. Maybe corrupted.", e)
-                                    null
+                        
+                        if (validDriveFileId != null) {
+                            // cleanup broken ones
+                            for (f in sortedFiles) {
+                                if (f.id != null && f.id != validDriveFileId) {
+                                    try { driveService?.deleteFile("Bearer $token", f.id!!) } catch(e: Exception){}
                                 }
                             }
                             
-                            if (syncData != null) {
-                                val localLastModified = libraryViewModel.getLastModifiedLocally()
-                                if (!isRelogin && syncData.appState.timestamp < localLastModified) {
-                                    Log.i("DriveViewModel", "Local state is newer than Drive state, uploading instead")
-                                    _isMetadataSyncing.value = false
-                                    syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete = onComplete)
-                                    return@launch
-                                }
+                            val localLastModified = libraryViewModel.getLastModifiedLocally()
+                            if (!isRelogin && syncData!!.appState.timestamp < localLastModified) {
+                                Log.i("DriveViewModel", "Local state is newer than Drive state, uploading instead")
+                                _isMetadataSyncing.value = false
+                                syncMetadata(context, authViewModel, libraryViewModel, isUpload = true, onComplete = onComplete)
+                                return@launch
+                            }
                             
                             // 1. Restore local profile info if logged in successfully
                             val currentAuth = authViewModel.uiState.value
                             var finalProfilePic = if (currentAuth is AuthState.Success) currentAuth.profilePic else null
                             if (finalProfilePic == null) {
-                                val syncPic = syncData.profilePic
+                                val syncPic = syncData!!.profilePic
                                 if (syncPic != null) {
                                     finalProfilePic = syncPic
                                 }
@@ -818,7 +861,13 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                             try {
                                 val profName = "profile_pic.jpg"
                                 val profSearch = driveService?.searchFiles("Bearer $token", "name = '$profName' and '$appDataFolderId' in parents and trashed = false")
-                                val profDriveId = profSearch?.files?.firstOrNull()?.id
+                                val sortedProfFiles = profSearch?.files?.sortedByDescending { it.createdTime }
+                                val profDriveId = sortedProfFiles?.firstOrNull()?.id
+                                if (sortedProfFiles != null && sortedProfFiles.size > 1) {
+                                    for (i in 1 until sortedProfFiles.size) {
+                                        try { sortedProfFiles[i].id?.let { driveService?.deleteFile("Bearer $token", it) } } catch(e: Exception){}
+                                    }
+                                }
                                 if (profDriveId != null) {
                                     val profResp = driveService?.downloadFile("Bearer $token", profDriveId)
                                     val bytes = profResp?.bytes()
@@ -853,10 +902,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                                 val currentPicNorm = currentAuth.profilePic?.replace("file:/", "file:///")?.replace("file//////", "file:///")
                                 val newPicNorm = finalProfilePic?.replace("file:/", "file:///")?.replace("file//////", "file:///")
                                 
-                                val newNickname = syncData.username ?: currentAuth.displayName ?: "Unknown"
-                                val newPhone = syncData.phone ?: currentAuth.phone
-                                val newBio = syncData.bio ?: currentAuth.bio
-                                val newStatusMsg = syncData.statusMsg ?: currentAuth.statusMsg
+                                val newNickname = syncData!!.username ?: currentAuth.displayName ?: "Unknown"
+                                val newPhone = syncData!!.phone ?: currentAuth.phone
+                                val newBio = syncData!!.bio ?: currentAuth.bio
+                                val newStatusMsg = syncData!!.statusMsg ?: currentAuth.statusMsg
                                 
                                 if (newNickname != currentAuth.displayName || newBio != currentAuth.bio || newStatusMsg != currentAuth.statusMsg || currentPicNorm != newPicNorm) {
                                     authViewModel.updateProfile(
@@ -870,7 +919,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                             }
                             
                             // 2. Restore app state (timers, reminders, day counters, isDarkMode, library files, etc.)
-                            libraryViewModel.restoreAppState(syncData.appState, isRelogin)
+                            libraryViewModel.restoreAppState(syncData!!.appState, isRelogin)
                             
                             if (currentAuth is AuthState.Success) {
                                 val prefs = context.getSharedPreferences("ScholarSpacePrefs", android.content.Context.MODE_PRIVATE)
@@ -885,11 +934,8 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                             }
                             Log.i("DriveViewModel", "Successfully downloaded and restored metadata from Drive")
                             onComplete(true)
-                            } else {
-                                Log.e("DriveViewModel", "Failed to decode syncData from JSON")
-                                onComplete(false)
-                            }
                         } else {
+                            Log.e("DriveViewModel", "Failed to decode syncData from JSON all variants")
                             onComplete(false)
                         }
                     } else {

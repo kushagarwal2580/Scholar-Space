@@ -43,10 +43,10 @@ import android.widget.Toast
 
 @Serializable
 data class PersistedLibraryItem(
-    val id: String,
-    val title: String,
-    val subtitle: String,
-    val tags: List<String>,
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val title: String = "",
+    val subtitle: String = "",
+    val tags: List<String> = emptyList(),
     val uriString: String? = null,
     val isFolder: Boolean = false,
     val parentId: String? = null,
@@ -57,13 +57,13 @@ data class PersistedLibraryItem(
 )
 
 @Serializable
-data class Reminder(val id: String = java.util.UUID.randomUUID().toString(), val text: String, val time: String, val isNotified: Boolean = false, val isPinned: Boolean = false)
+data class Reminder(val id: String = java.util.UUID.randomUUID().toString(), val text: String = "", val time: String = "", val isNotified: Boolean = false, val isPinned: Boolean = false)
 
 @Serializable
 data class NoteItem(
     val id: String = java.util.UUID.randomUUID().toString(),
-    val title: String,
-    val content: String,
+    val title: String = "",
+    val content: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val isPinned: Boolean = false
 )
@@ -71,8 +71,8 @@ data class NoteItem(
 @Serializable
 data class VoiceNote(
     val id: String = java.util.UUID.randomUUID().toString(),
-    val title: String,
-    val uriString: String,
+    val title: String = "",
+    val uriString: String = "",
     val driveFileId: String? = null,
     val isUploaded: Boolean = false,
     val fileLengthBytes: Long = 0L,
@@ -83,7 +83,7 @@ data class VoiceNote(
 @Serializable
 data class StopwatchItem(
     val id: Int = 0, // Should be generated
-    val title: String,
+    val title: String = "",
     val isPinned: Boolean = false,
     val startTime: Long = 0L,
     val isRunning: Boolean = false,
@@ -107,13 +107,13 @@ data class AppStateData(
 
 @Serializable
 data class ScholarSpaceSyncData(
-    val email: String,
+    val email: String = "",
     val username: String? = null,
     val profilePic: String? = null,
     val phone: String? = null,
     val bio: String? = null,
     val statusMsg: String? = null,
-    val appState: AppStateData,
+    val appState: AppStateData = AppStateData(),
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -140,16 +140,16 @@ data class FolderState(
 
 @Serializable
 data class DayCounter(
-    val id: Int, 
-    val title: String, 
-    val daysLeft: Int, 
+    val id: Int = 0, 
+    val title: String = "", 
+    val daysLeft: Int = 0, 
     val isPinned: Boolean = false, 
     val lastNotifiedDay: Int = -1,
     val targetDateMillis: Long = 0L
 )
 
 @Serializable
-data class TimerItem(val id: Int, val title: String = "", val durationMinutes: Int, val durationSeconds: Int = 0, val timeRemaining: Int, val isRunning: Boolean, val isPinned: Boolean = false)
+data class TimerItem(val id: Int = 0, val title: String = "", val durationMinutes: Int = 0, val durationSeconds: Int = 0, val timeRemaining: Int = 0, val isRunning: Boolean = false, val isPinned: Boolean = false)
 
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
@@ -158,7 +158,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private val prefs = application.getSharedPreferences("LibraryPrefs", Context.MODE_PRIVATE)
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true; isLenient = true; explicitNulls = false }
 
     var onStateChangedListener: (() -> Unit)? = null
 

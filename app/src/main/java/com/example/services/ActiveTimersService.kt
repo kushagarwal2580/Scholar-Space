@@ -24,7 +24,7 @@ class ActiveTimersService : Service() {
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var tickJob: Job? = null
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true; isLenient = true; explicitNulls = false }
     private var lastReminderCheckTime = 0L
 
     override fun onCreate() {

@@ -240,7 +240,7 @@ object NotificationHelper {
         val prefs = context.getSharedPreferences("LibraryPrefs", Context.MODE_PRIVATE)
         val jsonStr = prefs.getString("app_state", null) ?: return null
         return try {
-            val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; encodeDefaults = true }
+            val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true; isLenient = true; explicitNulls = false }
             val data = json.decodeFromString<com.example.ui.screens.AppStateData>(jsonStr)
             
             val activeTimersCount = data.timers.count { it.timeRemaining > 0 }

@@ -30,6 +30,7 @@ import com.example.ui.theme.*
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1053,25 +1054,6 @@ fun ZoomableContent(
         }
     }
 
-    val transformState = rememberTransformableState { zoomChange, offsetChange, _ ->
-        val newScale = (scale.value * zoomChange).coerceIn(1f, 5f)
-        coroutineScope.launch {
-            if (scale.value != newScale) {
-                scale.snapTo(newScale)
-                onScaleChange?.invoke(newScale)
-            }
-            if (newScale == 1f) {
-                offsetX.snapTo(0f)
-                offsetY.snapTo(0f)
-            } else {
-                val maxX = (containerSize.width * (newScale - 1)) / 2f
-                val maxY = (containerSize.height * (newScale - 1)) / 2f
-                offsetX.snapTo((offsetX.value + offsetChange.x * newScale).coerceIn(-maxX, maxX))
-                offsetY.snapTo((offsetY.value + offsetChange.y * newScale).coerceIn(-maxY, maxY))
-            }
-        }
-    }
-
     val currentOnTap by rememberUpdatedState(onTap)
     
     Box(
@@ -1097,33 +1079,33 @@ fun ZoomableContent(
                     }
                 )
             }
-            .pointerInput(allowOneFingerPan, scale.value, containerSize) {
-                if (allowOneFingerPan) {
-                    detectDragGestures(
-                        onDrag = { change, dragAmount ->
-                            if (scale.value > 1f) {
-                                val maxX = (containerSize.width * (scale.value - 1)) / 2f
-                                val maxY = (containerSize.height * (scale.value - 1)) / 2f
+            .pointerInput(containerSize, allowOneFingerPan) {
+                detectTransformGestures(
+                    panZoomLock = true,
+                    onGesture = { centroid, pan, zoom, rotation ->
+                        val newScale = (scale.value * zoom).coerceIn(1f, 5f)
+                        coroutineScope.launch {
+                            if (scale.value != newScale) {
+                                scale.snapTo(newScale)
+                                onScaleChange?.invoke(newScale)
+                            }
+                            // Allows pan if zoomed in, OR if allowOneFingerPan is true (but panning only makes sense when zoomed in)
+                            if (newScale > 1f) {
+                                val maxX = (containerSize.width * (newScale - 1)) / 2f
+                                val maxY = (containerSize.height * (newScale - 1)) / 2f
                                 
-                                val newX = (offsetX.value + dragAmount.x).coerceIn(-maxX, maxX)
-                                val newY = (offsetY.value + dragAmount.y).coerceIn(-maxY, maxY)
+                                val activePan = if (allowOneFingerPan || zoom != 1f) pan else androidx.compose.ui.geometry.Offset.Zero
                                 
-                                val didConsumeVertical = newY != offsetY.value && kotlin.math.abs(dragAmount.y) > 0
-                                val didConsumeHorizontal = newX != offsetX.value && kotlin.math.abs(dragAmount.x) > 0
-
-                                if (didConsumeVertical || didConsumeHorizontal) {
-                                    change.consume()
-                                }
-                                coroutineScope.launch {
-                                    offsetX.snapTo(newX)
-                                    offsetY.snapTo(newY)
-                                }
+                                offsetX.snapTo((offsetX.value + activePan.x * scale.value).coerceIn(-maxX, maxX))
+                                offsetY.snapTo((offsetY.value + activePan.y * scale.value).coerceIn(-maxY, maxY))
+                            } else {
+                                offsetX.snapTo(0f)
+                                offsetY.snapTo(0f)
                             }
                         }
-                    )
-                }
-            }
-            .transformable(state = transformState),
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         Box(
