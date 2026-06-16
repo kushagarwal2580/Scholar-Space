@@ -42,7 +42,6 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                 if (loggedInEmail != null && loggedInEmail.contains("@")) {
                     val existingUser = userRepository.getUserByEmail(loggedInEmail)
                     if (existingUser != null) {
-                        _isSyncing.value = true
                         _uiState.value = AuthState.Success(
                             email = existingUser.email,
                             displayName = existingUser.username,
@@ -62,7 +61,6 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                         val existingUser = userRepository.getUserByEmail(account.email!!)
                         val displayName = existingUser?.username ?: account.displayName ?: account.email!!
                         val profilePic = existingUser?.profilePic // Remove fallback to Google Profile Pic
-                        _isSyncing.value = true
                         _uiState.value = AuthState.Success(
                             email = account.email!!,
                             displayName = displayName,

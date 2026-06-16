@@ -87,7 +87,7 @@ fun DashboardScreen(
     val timers by libraryViewModel.timers.collectAsState()
     val stopwatches by libraryViewModel.stopwatches.collectAsState()
     val allReminders by libraryViewModel.allReminders.collectAsState()
-    val recentFiles = allFiles.filter { !it.isFolder && it.lastAccessedAt > 0L }.sortedByDescending { it.lastAccessedAt }
+    val recentFiles = allFiles.filter { !it.isFolder && it.lastAccessedAt > 0L }.sortedByDescending { it.lastAccessedAt }.take(10)
 
     val driveUsage by driveViewModel.storageUsage.collectAsState()
     val driveLimit by driveViewModel.storageLimit.collectAsState()

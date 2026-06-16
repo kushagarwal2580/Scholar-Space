@@ -27,6 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.clickable
 import com.example.data.local.AppDatabase
 import com.example.data.repository.UserRepository
 import com.example.ui.screens.AuthViewModel
@@ -49,7 +51,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBars
@@ -93,8 +94,9 @@ class MainActivity : ComponentActivity() {
                         if (wasOffline) {
                             android.util.Log.d("MainActivity", "Internet connected, auto-syncing / uploading pending files...")
                             if (driveViewModel.isConnected.value) {
-                                driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
-                                driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false)
+                                driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false) {
+                                    driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
+                                }
                             }
                         }
                         wasOffline = false
@@ -192,11 +194,14 @@ class MainActivity : ComponentActivity() {
                 val authState by authViewModel.uiState.collectAsState()
                 val isSyncing by authViewModel.isSyncing.collectAsState()
                 val currentTab by libraryViewModel.currentTab.collectAsState()
-                var showSyncScreen by androidx.compose.runtime.remember { mutableStateOf(true) }
+                var showSyncScreen by androidx.compose.runtime.remember { mutableStateOf(false) }
                 
                 LaunchedEffect(isSyncing) {
                     if (isSyncing) {
                         showSyncScreen = true
+                        kotlinx.coroutines.delay(5000)
+                        authViewModel.setSyncing(false)
+                        showSyncScreen = false
                     }
                 }
                 
@@ -223,8 +228,9 @@ class MainActivity : ComponentActivity() {
                         val email = driveViewModel.activeAccount.value
                         if (email != null) {
                             driveViewModel.fetchDriveStorage(this@MainActivity, email)
-                            driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
-                            driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false)
+                            driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false) {
+                                driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
+                            }
                         }
                     }
                 }
@@ -247,55 +253,26 @@ class MainActivity : ComponentActivity() {
                     }
                     previousAccount = activeAccount
                     if (activeAccount != null && scholarSpaceFolderId != null) {
-                        driveViewModel.syncDriveData(this@MainActivity, libraryViewModel)
-                        driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false)
-                        
-                        libraryViewModel.onStateChangedListener = {
-                            driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = true)
+                        driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = false) {
+                            driveViewModel.syncDriveData(this@MainActivity, libraryViewModel) {
+                                libraryViewModel.onStateChangedListener = {
+                                    driveViewModel.triggerMetadataUpload(this@MainActivity, authViewModel, libraryViewModel)
+                                }
+                            }
                         }
                     } else if (activeAccount == null) {
                         libraryViewModel.onStateChangedListener = null
                     }
                 }
                 
-                var lastSyncedBio by remember { mutableStateOf<String?>(null) }
-                var lastSyncedStatusMsg by remember { mutableStateOf<String?>(null) }
-                var lastSyncedNickname by remember { mutableStateOf<String?>(null) }
-                var lastSyncedProfilePic by remember { mutableStateOf<String?>(null) }
-                var lastSyncedEmail by remember { mutableStateOf<String?>(null) }
-
                 LaunchedEffect(authState) {
                     if (authState is AuthState.Success) {
                         val success = authState as AuthState.Success
                         val email = success.email
                         driveViewModel.setAppUserEmail(this@MainActivity, email)
-                        
-                        // Detect when profile actually changed locally (user edited nickname, bio, or status)
-                        val profileChanged = lastSyncedEmail == email && (
-                            lastSyncedBio != success.bio ||
-                            lastSyncedStatusMsg != success.statusMsg ||
-                            lastSyncedNickname != success.displayName ||
-                            lastSyncedProfilePic != success.profilePic
-                        )
-                        
-                        lastSyncedEmail = email
-                        lastSyncedBio = success.bio
-                        lastSyncedStatusMsg = success.statusMsg
-                        lastSyncedNickname = success.displayName
-                        lastSyncedProfilePic = success.profilePic
-                        
-                        if (profileChanged) {
-                            driveViewModel.syncMetadata(this@MainActivity, authViewModel, libraryViewModel, isUpload = true)
-                        }
                     } else if (authState is AuthState.Idle || authState is AuthState.Error) {
                         driveViewModel.setAppUserEmail(this@MainActivity, null)
                         libraryViewModel.setCurrentTab("dashboard")
-                        lastSyncedEmail = null
-                        lastSyncedBio = null
-                        lastSyncedStatusMsg = null
-                        lastSyncedNickname = null
-                        lastSyncedProfilePic = null
-                        showSyncScreen = true
                     }
                 }
                 
@@ -305,7 +282,7 @@ class MainActivity : ComponentActivity() {
                 var minTimeElapsed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(2000)
+                    kotlinx.coroutines.delay(2500)
                     minTimeElapsed = true
                 }
                 
@@ -390,47 +367,49 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 // Syncing Screen Overlay with slide-up out animation
-                                if (isSyncing) {
-                                    var syncFinished by androidx.compose.runtime.remember { mutableStateOf(false) }
-                                    val syncOffset by androidx.compose.animation.core.animateFloatAsState(
-                                        targetValue = if (!showSyncScreen) -1f else 0f,
-                                        animationSpec = androidx.compose.animation.core.tween(
-                                            durationMillis = 1500,
-                                            easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-                                        ),
-                                        label = "syncOffset",
-                                        finishedListener = { 
-                                            if (it == -1f) {
-                                                syncFinished = true
+                                var syncFinished by androidx.compose.runtime.remember { mutableStateOf(true) }
+                                val isOverlayActive = showSyncScreen || isSyncing
+                                
+                                androidx.compose.runtime.LaunchedEffect(isOverlayActive) {
+                                    if (isOverlayActive) {
+                                        syncFinished = false
+                                    }
+                                }
+                                
+                                val syncOffset by androidx.compose.animation.core.animateFloatAsState(
+                                    targetValue = if (!isOverlayActive) -1f else 0f,
+                                    animationSpec = if (isOverlayActive) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(
+                                        durationMillis = 1000,
+                                        easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                                    ),
+                                    label = "syncOffset",
+                                    finishedListener = { 
+                                        if (it == -1f) {
+                                            syncFinished = true
+                                        }
+                                    }
+                                )
+                                val syncAlpha by androidx.compose.animation.core.animateFloatAsState(
+                                    targetValue = if (!isOverlayActive) 0f else 1f,
+                                    animationSpec = if (isOverlayActive) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(500),
+                                    label = "syncAlpha"
+                                )
+
+                                if (!syncFinished || isOverlayActive) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer {
+                                                translationY = syncOffset * size.height
+                                                alpha = syncAlpha
+                                            }
+                                    ) {
+                                        com.example.ui.screens.SyncingScreen(
+                                            onFinished = {
+                                                showSyncScreen = false
                                                 authViewModel.setSyncing(false)
                                             }
-                                        }
-                                    )
-                                    val syncAlpha by androidx.compose.animation.core.animateFloatAsState(
-                                        targetValue = if (!showSyncScreen) 0f else 1f,
-                                        animationSpec = androidx.compose.animation.core.tween(500),
-                                        label = "syncAlpha"
-                                    )
-
-                                    if (!syncFinished) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .graphicsLayer {
-                                                    translationY = syncOffset * size.height
-                                                    alpha = syncAlpha
-                                                }
-                                        ) {
-                                            com.example.ui.screens.SyncingScreen(
-                                                onFinished = {
-                                                    if (hasStartedDismissal) {
-                                                        showSyncScreen = false
-                                                    } else {
-                                                        authViewModel.setSyncing(false)
-                                                    }
-                                                }
-                                            )
-                                        }
+                                        )
                                     }
                                 }
                             }
@@ -462,6 +441,29 @@ class MainActivity : ComponentActivity() {
                                     }
                             ) {
                                 ScholarSpaceSplashScreen()
+                            }
+
+                            // Pre-compose major user-facing screens during startup animation to warm up JIT compiler,
+                            // deserialize data asynchronously, and cache layouts, ensuring buttery smooth transitions.
+                            Box(
+                                modifier = Modifier
+                                    .size(1.dp)
+                                    .graphicsLayer { alpha = 0.01f }
+                            ) {
+                                com.example.ui.screens.LibraryScreen(
+                                    libraryViewModel = libraryViewModel,
+                                    driveViewModel = driveViewModel,
+                                    innerPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                                )
+                                com.example.ui.screens.NotesScreen(
+                                    libraryViewModel = libraryViewModel,
+                                    driveViewModel = driveViewModel,
+                                    innerPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                                )
+                                com.example.ui.screens.CalendarScreen(
+                                    libraryViewModel = libraryViewModel,
+                                    innerPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                                )
                             }
                         }
                     }
@@ -623,28 +625,27 @@ private fun MainAppContent(
                     androidx.compose.animation.AnimatedContent(
                         targetState = currentTab,
                         transitionSpec = {
-                            val enterSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                            val exitSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                            (androidx.compose.animation.fadeIn(animationSpec = enterSpec) + androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = enterSpec))
-                                .togetherWith(
-                                    androidx.compose.animation.fadeOut(animationSpec = exitSpec) + androidx.compose.animation.scaleOut(targetScale = 0.95f, animationSpec = exitSpec)
-                                )
+                            val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 250, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                            (androidx.compose.animation.fadeIn(animationSpec = tweenSpec) +
+                             androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = tweenSpec))
+                            .togetherWith(
+                                androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = 150, easing = androidx.compose.animation.core.LinearEasing)) +
+                                androidx.compose.animation.scaleOut(targetScale = 1.05f, animationSpec = tweenSpec)
+                            )
                         },
                         modifier = Modifier.fillMaxSize(),
                         label = "tab_transition"
                     ) { tab ->
-                        when (tab) {
-                            "settings" -> {
-                                com.example.ui.screens.SettingsScreen(
+                        androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+                            when(tab) {
+                                "settings" -> com.example.ui.screens.SettingsScreen(
                                     authViewModel = authViewModel,
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
                                     innerPadding = customInnerPadding,
                                     onBack = { libraryViewModel.setCurrentTab("dashboard") }
                                 )
-                            }
-                            "dashboard" -> {
-                                com.example.ui.screens.DashboardScreen(
+                                "dashboard" -> com.example.ui.screens.DashboardScreen(
                                     authViewModel = authViewModel,
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
@@ -660,23 +661,17 @@ private fun MainAppContent(
                                         }
                                     }
                                 )
-                            }
-                            "library" -> {
-                                com.example.ui.screens.LibraryScreen(
+                                "library" -> com.example.ui.screens.LibraryScreen(
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
                                     innerPadding = customInnerPadding
                                 )
-                            }
-                            "notes" -> {
-                                com.example.ui.screens.NotesScreen(
+                                "notes" -> com.example.ui.screens.NotesScreen(
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
                                     innerPadding = customInnerPadding
                                 )
-                            }
-                            "calendar" -> {
-                                com.example.ui.screens.CalendarScreen(
+                                "calendar" -> com.example.ui.screens.CalendarScreen(
                                     libraryViewModel = libraryViewModel,
                                     innerPadding = customInnerPadding
                                 )

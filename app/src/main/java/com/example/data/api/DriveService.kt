@@ -68,6 +68,15 @@ interface DriveService {
         @retrofit2.http.Part file: okhttp3.MultipartBody.Part
     ): DriveFile
 
+    @retrofit2.http.Multipart
+    @retrofit2.http.PATCH("upload/drive/v3/files/{fileId}?uploadType=multipart")
+    suspend fun updateFileContent(
+        @Header("Authorization") authHeader: String,
+        @retrofit2.http.Path("fileId") fileId: String,
+        @retrofit2.http.Part metadata: okhttp3.MultipartBody.Part,
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): DriveFile
+
     @retrofit2.http.DELETE("drive/v3/files/{fileId}")
     suspend fun deleteFile(
         @Header("Authorization") authHeader: String,

@@ -205,14 +205,15 @@ fun NotesScreen(
             ) {
                 val minHt = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
 
+                val listScrollState = androidx.compose.foundation.rememberScrollState()
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 0.dp)
-                        .verticalScroll(scrollState)
                         .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { focusManager.clearFocus() }
-                        .heightIn(min = minHt),
+                        .verticalScroll(listScrollState)
+                        .heightIn(min = minHt)
+                        .padding(bottom = innerPadding.calculateBottomPadding() + 96.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     NotesHeader(
@@ -264,10 +265,8 @@ fun NotesScreen(
 
                     // Notes List
                     if (filteredNotes.isNotEmpty()) {
-                        if (filteredVoiceNotes.isNotEmpty()) {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                Text("Text Notes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Cyan400)
-                            }
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            Text("Text Notes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Cyan400)
                         }
                         filteredNotes.forEach { note ->
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -383,8 +382,6 @@ fun NotesScreen(
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding() + 96.dp))
                 }
             }
 

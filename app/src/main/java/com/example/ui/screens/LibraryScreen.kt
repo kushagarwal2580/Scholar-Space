@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -61,6 +62,8 @@ fun LibraryScreen(
     val currentFolderId by libraryViewModel.currentFolderId.collectAsState()
     val folderState by libraryViewModel.currentFolderState.collectAsState()
     val currentTab by libraryViewModel.currentTab.collectAsState()
+    
+    var lastAnimatedFolderId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(libraryViewModel.currentFolderId.value) }
 
     var showDialog by remember { mutableStateOf(false) }
     var dialogTitle by remember { mutableStateOf("") }
@@ -234,88 +237,104 @@ fun LibraryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { focusManager.clearFocus() }
-                    .heightIn(min = minHt),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { focusManager.clearFocus() },
             ) {
-                    LibraryHeader(
-                    isSelectionMode = isSelectionMode,
-                    selectedFiles = selectedFiles,
-                    filteredFiles = stateFilteredFiles,
-                    isRefreshing = isRefreshing,
-                    showSyncCompleteMessage = showSyncCompleteMessage,
-                    syncMessageText = syncMessageText,
-                    syncMessageColor = syncMessageColor,
-                    currentFolderId = currentFolderId,
-                    libraryViewModel = libraryViewModel,
-                    driveViewModel = driveViewModel,
-                    rotation = { rotationState.value },
-                    coroutineScope = coroutineScope,
-                    onSelectionChange = { isSelectionMode = it; if (!it) selectedFiles = emptySet() },
-                    onSelectedFilesChange = { selectedFiles = it },
-                    onRefreshingChange = { 
-                        isRefreshing = it
-                        if (it) {
-                            showSyncCompleteMessage = false
-                            coroutineScope.launch {
-                                if (driveViewModel.isConnected.value && isOnline.value) {
-                                    driveViewModel.syncDriveData(context, libraryViewModel) {
-                                        isRefreshing = false
-                                        syncMessageText = "Sync complete"
-                                        syncMessageColor = Cyan400
-                                        showSyncCompleteMessage = true
-                                        coroutineScope.launch {
-                                            kotlinx.coroutines.delay(3000)
-                                            showSyncCompleteMessage = false
-                                        }
-                                    }
-                                } else {
-                                    kotlinx.coroutines.delay(500)
-                                    isRefreshing = false
-                                    syncMessageText = "Please connect to internet"
-                                    syncMessageColor = androidx.compose.ui.graphics.Color(0xFFEF4444)
-                                    showSyncCompleteMessage = true
-                                    kotlinx.coroutines.delay(3000)
-                                    showSyncCompleteMessage = false
-                                }
-                            }
-                        }
-                    },
-                    onSearchQueryChange = { searchQuery = it },
-                    searchQuery = searchQuery,
-                    onMoveClick = { showMoveDialog = true }
-                )
-
                 androidx.compose.animation.AnimatedContent(
                     targetState = folderState,
+                    contentKey = { it.currentFolderId ?: "root" },
                     transitionSpec = {
-                        if (initialState.currentFolderId != targetState.currentFolderId) {
-                            val tweenSpec = androidx.compose.animation.core.tween<Float>(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                            (androidx.compose.animation.fadeIn(animationSpec = tweenSpec) + 
-                             androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = tweenSpec))
-                             .togetherWith(
-                                androidx.compose.animation.fadeOut(animationSpec = tweenSpec)
-                             )
+                        val isEntering = initialState.currentFolderId == null && targetState.currentFolderId != null
+                        val isExiting = initialState.currentFolderId != null && targetState.currentFolderId == null
+                        
+                        // Default Android-like horizontal slide
+                        val duration = 300
+                        val tweenSpec = androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntOffset>(durationMillis = duration, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                        
+                        if (isEntering) {
+                            // slide in from right, slide out to left
+                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { it }.togetherWith(
+                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { -it }
+                            )
+                        } else if (isExiting) {
+                            // slide out to right, slide in from left
+                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { -it }.togetherWith(
+                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { it }
+                            )
+                        } else if (initialState.currentFolderId != targetState.currentFolderId) {
+                            // sibling folding sliding
+                            androidx.compose.animation.slideInHorizontally(animationSpec = tweenSpec) { it }.togetherWith(
+                                androidx.compose.animation.slideOutHorizontally(animationSpec = tweenSpec) { -it }
+                            )
                         } else {
-                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.snap())
-                             .togetherWith(
-                                androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.snap())
-                             )
+                            // simple fallback
+                            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(durationMillis = duration)).togetherWith(
+                                androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(durationMillis = duration))
+                            )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = androidx.compose.ui.Alignment.TopCenter,
                     label = "folder_contents_transition"
                 ) { targetFolderState ->
                     val targetFilteredFiles = targetFolderState.files.filter {
                         it.title.contains(searchQuery, ignoreCase = true) || it.tags.any { tag -> tag.contains(searchQuery, ignoreCase = true) }
                     }.sortedByDescending { it.isFolder }
 
+                    val innerScrollState = rememberScrollState()
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxSize().verticalScroll(innerScrollState).heightIn(min = minHt).padding(bottom = innerPadding.calculateBottomPadding() + 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                            LibraryHeader(
+                                isSelectionMode = isSelectionMode,
+                                selectedFiles = selectedFiles,
+                                filteredFiles = stateFilteredFiles,
+                                isRefreshing = isRefreshing,
+                                showSyncCompleteMessage = showSyncCompleteMessage,
+                                syncMessageText = syncMessageText,
+                                syncMessageColor = syncMessageColor,
+                                currentFolderId = currentFolderId,
+                                libraryViewModel = libraryViewModel,
+                                driveViewModel = driveViewModel,
+                                rotation = { rotationState.value },
+                                coroutineScope = coroutineScope,
+                                onSelectionChange = { isSelectionMode = it; if (!it) selectedFiles = emptySet() },
+                                onSelectedFilesChange = { selectedFiles = it },
+                                onRefreshingChange = { 
+                                    isRefreshing = it
+                                    if (it) {
+                                        showSyncCompleteMessage = false
+                                        coroutineScope.launch {
+                                            if (driveViewModel.isConnected.value && isOnline.value) {
+                                                driveViewModel.syncDriveData(context, libraryViewModel) {
+                                                    isRefreshing = false
+                                                    syncMessageText = "Sync complete"
+                                                    syncMessageColor = Cyan400
+                                                    showSyncCompleteMessage = true
+                                                    coroutineScope.launch {
+                                                        kotlinx.coroutines.delay(3000)
+                                                        showSyncCompleteMessage = false
+                                                    }
+                                                }
+                                            } else {
+                                                kotlinx.coroutines.delay(500)
+                                                isRefreshing = false
+                                                syncMessageText = "Please connect to internet"
+                                                syncMessageColor = androidx.compose.ui.graphics.Color(0xFFEF4444)
+                                                showSyncCompleteMessage = true
+                                                kotlinx.coroutines.delay(3000)
+                                                showSyncCompleteMessage = false
+                                            }
+                                        }
+                                    }
+                                },
+                                onSearchQueryChange = { searchQuery = it },
+                                searchQuery = searchQuery,
+                                onMoveClick = { showMoveDialog = true }
+                            )
+                        
                         if (targetFilteredFiles.isEmpty()) {
+                            
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -350,10 +369,14 @@ fun LibraryScreen(
                                     )
                                 }
                             }
+                            
                         } else {
                             targetFilteredFiles.forEach { file ->
-                                LibraryListItem(
-                                    item = file,
+                                androidx.compose.foundation.layout.Box(
+                                    modifier = Modifier
+                                ) {
+                                    LibraryListItem(
+                                item = file,
                                     uploadProgress = uploadingFiles[file.id],
                                     downloadProgress = downloadingFiles[file.id],
                                     isSelected = selectedFiles.contains(file.id),
@@ -413,11 +436,11 @@ fun LibraryScreen(
                                     }
                                 )
                             }
+                                }
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding() + 96.dp))
             }
         }
         }

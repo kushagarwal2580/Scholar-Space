@@ -250,79 +250,77 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun restoreAppState(data: AppStateData, isRelogin: Boolean = false) {
-        viewModelScope.launch {
-            if (isRelogin) {
-                _timers.value = data.timers
-                _stopwatches.value = data.stopwatches
-            }
-            
-            // We intentionally do not restore `timers` and `stopwatches` from Google Drive
-            // on regular app restarts to prevent overwriting active background timers/stopwatches.
-            _dayCounters.value = data.dayCounters
-            _isDarkMode.value = data.isDarkMode
-            _allReminders.value = data.reminders
-            _notes.value = data.notes
-            _voiceNotes.value = data.voiceNotes
-            _pinnedNote1Id.value = data.pinnedNote1Id
-            _pinnedNote2Id.value = data.pinnedNote2Id
-
-            
-            val restoredFiles = data.files.map { p ->
-                val ext = p.title.substringAfterLast('.', "").lowercase()
-                
-                val icon = if (p.iconName != null) {
-                    when (p.iconName) {
-                        "Filled.Image" -> Icons.Default.Image
-                        "Filled.Audiotrack" -> Icons.Default.Audiotrack
-                        "Filled.Movie" -> Icons.Default.Movie
-                        "Filled.Description" -> Icons.Default.Description
-                        "Filled.List" -> Icons.Default.List
-                        "Filled.PlayArrow" -> Icons.Default.PlayArrow
-                        "Filled.Folder" -> Icons.Default.Folder
-                        else -> Icons.Default.Description
-                    }
-                } else if (p.isFolder) {
-                    Icons.Default.Folder
-                } else if (ext in listOf("png","jpg","jpeg","gif", "webp", "bmp")) {
-                    Icons.Default.Image
-                } else if (ext in listOf("mp3", "m4a", "wav")) {
-                    Icons.Default.Audiotrack
-                } else if (ext in listOf("mp4", "mkv", "avi")) {
-                    Icons.Default.Movie
-                } else if (ext == "pdf") {
-                    Icons.Default.Description
-                } else if (ext in listOf("doc", "docx", "txt", "rtf")) {
-                    Icons.Default.Description
-                } else if (ext in listOf("xls", "xlsx", "csv")) {
-                    Icons.Default.List
-                } else if (ext in listOf("ppt", "pptx")) {
-                    Icons.Default.PlayArrow
-                } else {
-                    Icons.Default.Description
-                }
-                
-                val rawUri = p.uriString?.let { Uri.parse(it) }
-                val validatedUri = verifyUri(rawUri)
-
-                LibraryItem(
-                    id = p.id,
-                    title = p.title,
-                    subtitle = p.subtitle,
-                    icon = icon,
-                    iconTint = Cyan400,
-                    iconBg = Cyan500.copy(alpha = 0.2f),
-                    tags = p.tags,
-                    uri = validatedUri,
-                    isFolder = p.isFolder,
-                    parentId = p.parentId,
-                    lastAccessedAt = if (p.lastAccessedAt > 0L) p.lastAccessedAt else System.currentTimeMillis(),
-                    driveFileId = p.driveFileId,
-                    fileSize = p.fileSize
-                )
-            }
-            _allFiles.value = restoredFiles
-            saveData()
+        if (isRelogin) {
+            _timers.value = data.timers
+            _stopwatches.value = data.stopwatches
         }
+        
+        // We intentionally do not restore `timers` and `stopwatches` from Google Drive
+        // on regular app restarts to prevent overwriting active background timers/stopwatches.
+        _dayCounters.value = data.dayCounters
+        _isDarkMode.value = data.isDarkMode
+        _allReminders.value = data.reminders
+        _notes.value = data.notes
+        _voiceNotes.value = data.voiceNotes
+        _pinnedNote1Id.value = data.pinnedNote1Id
+        _pinnedNote2Id.value = data.pinnedNote2Id
+
+        
+        val restoredFiles = data.files.map { p ->
+            val ext = p.title.substringAfterLast('.', "").lowercase()
+            
+            val icon = if (p.iconName != null) {
+                when (p.iconName) {
+                    "Filled.Image" -> Icons.Default.Image
+                    "Filled.Audiotrack" -> Icons.Default.Audiotrack
+                    "Filled.Movie" -> Icons.Default.Movie
+                    "Filled.Description" -> Icons.Default.Description
+                    "Filled.List" -> Icons.Default.List
+                    "Filled.PlayArrow" -> Icons.Default.PlayArrow
+                    "Filled.Folder" -> Icons.Default.Folder
+                    else -> Icons.Default.Description
+                }
+            } else if (p.isFolder) {
+                Icons.Default.Folder
+            } else if (ext in listOf("png","jpg","jpeg","gif", "webp", "bmp")) {
+                Icons.Default.Image
+            } else if (ext in listOf("mp3", "m4a", "wav")) {
+                Icons.Default.Audiotrack
+            } else if (ext in listOf("mp4", "mkv", "avi")) {
+                Icons.Default.Movie
+            } else if (ext == "pdf") {
+                Icons.Default.Description
+            } else if (ext in listOf("doc", "docx", "txt", "rtf")) {
+                Icons.Default.Description
+            } else if (ext in listOf("xls", "xlsx", "csv")) {
+                Icons.Default.List
+            } else if (ext in listOf("ppt", "pptx")) {
+                Icons.Default.PlayArrow
+            } else {
+                Icons.Default.Description
+            }
+            
+            val rawUri = p.uriString?.let { Uri.parse(it) }
+            val validatedUri = verifyUri(rawUri)
+
+            LibraryItem(
+                id = p.id,
+                title = p.title,
+                subtitle = p.subtitle,
+                icon = icon,
+                iconTint = Cyan400,
+                iconBg = Cyan500.copy(alpha = 0.2f),
+                tags = p.tags,
+                uri = validatedUri,
+                isFolder = p.isFolder,
+                parentId = p.parentId,
+                lastAccessedAt = if (p.lastAccessedAt > 0L) p.lastAccessedAt else System.currentTimeMillis(),
+                driveFileId = p.driveFileId,
+                fileSize = p.fileSize
+            )
+        }
+        _allFiles.value = restoredFiles
+        saveData()
     }
 
     private val _currentTab = MutableStateFlow("dashboard")
@@ -846,6 +844,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private val _resetLibraryTrigger = MutableStateFlow(0L)
     val resetLibraryTrigger: StateFlow<Long> = _resetLibraryTrigger.asStateFlow()
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     init {
         activeInstance = this
         loadData()
@@ -928,130 +928,134 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun loadData() {
-        val jsonStr = prefs.getString("app_state", null)
-        if (jsonStr != null) {
-            try {
-                val data = json.decodeFromString<AppStateData>(jsonStr)
-                
-                // Adjust timers for elapsed time
-                val elapsedSeconds = ((System.currentTimeMillis() - data.timestamp) / 1000).toInt()
-                val elapsedDays = elapsedSeconds / (24 * 3600)
-                
-                val adjustedTimers = data.timers.map {
-                    if (it.isRunning) {
-                        val newTime = (it.timeRemaining - elapsedSeconds).coerceAtLeast(0)
-                        val isStillRunning = newTime > 0
-                        if (!isStillRunning && it.timeRemaining > 0) {
-                            // If it finished while we were away
-                            showNotification("Timer Complete", "Your ${it.durationMinutes}-minute timer has finished.")
-                        }
-                        it.copy(timeRemaining = newTime, isRunning = isStillRunning)
-                    } else {
-                        it
-                    }
-                }
-                
-                val savedDate = java.time.Instant.ofEpochMilli(data.timestamp).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                val nowDate = java.time.LocalDate.now()
-                val calendarElapsedDays = java.time.temporal.ChronoUnit.DAYS.between(savedDate, nowDate).toInt()
-                
-                val adjustedDayCounters = data.dayCounters.map {
-                    if (it.targetDateMillis > 0L) {
-                        val targetDate = java.time.Instant.ofEpochMilli(it.targetDateMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                        val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(nowDate, targetDate).toInt().coerceAtLeast(0)
-                        it.copy(daysLeft = daysRemaining)
-                    } else if (calendarElapsedDays > 0) {
-                        it.copy(daysLeft = (it.daysLeft - calendarElapsedDays).coerceAtLeast(0), targetDateMillis = nowDate.plusDays((it.daysLeft - calendarElapsedDays).coerceAtLeast(0).toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
-                    } else {
-                        it.copy(targetDateMillis = nowDate.plusDays(it.daysLeft.toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
-                    }
-                }
-                
-                val restoredFiles = data.files.map { p ->
-                    val ext = p.title.substringAfterLast('.', "").lowercase()
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            val jsonStr = prefs.getString("app_state", null)
+            if (jsonStr != null) {
+                try {
+                    val data = json.decodeFromString<AppStateData>(jsonStr)
                     
-                    val icon = if (p.iconName != null) {
-                        when (p.iconName) {
-                            "Filled.Image" -> Icons.Default.Image
-                            "Filled.Audiotrack" -> Icons.Default.Audiotrack
-                            "Filled.Movie" -> Icons.Default.Movie
-                            "Filled.Description" -> Icons.Default.Description
-                            "Filled.List" -> Icons.Default.List
-                            "Filled.PlayArrow" -> Icons.Default.PlayArrow
-                            "Filled.Folder" -> Icons.Default.Folder
-                            else -> Icons.Default.Description
+                    // Adjust timers for elapsed time
+                    val elapsedSeconds = ((System.currentTimeMillis() - data.timestamp) / 1000).toInt()
+                    val elapsedDays = elapsedSeconds / (24 * 3600)
+                    
+                    val adjustedTimers = data.timers.map {
+                        if (it.isRunning) {
+                            val newTime = (it.timeRemaining - elapsedSeconds).coerceAtLeast(0)
+                            val isStillRunning = newTime > 0
+                            if (!isStillRunning && it.timeRemaining > 0) {
+                                // If it finished while we were away
+                                showNotification("Timer Complete", "Your ${it.durationMinutes}-minute timer has finished.")
+                            }
+                            it.copy(timeRemaining = newTime, isRunning = isStillRunning)
+                        } else {
+                            it
                         }
-                    } else if (p.isFolder) {
-                        Icons.Default.Folder
-                    } else if (ext in listOf("png","jpg","jpeg","gif", "webp", "bmp")) {
-                        Icons.Default.Image
-                    } else if (ext in listOf("mp3", "m4a", "wav")) {
-                        Icons.Default.Audiotrack
-                    } else if (ext in listOf("mp4", "mkv", "avi")) {
-                        Icons.Default.Movie
-                    } else if (ext == "pdf") {
-                        Icons.Default.Description
-                    } else if (ext in listOf("doc", "docx", "txt", "rtf")) {
-                        Icons.Default.Description
-                    } else if (ext in listOf("xls", "xlsx", "csv")) {
-                        Icons.Default.List
-                    } else if (ext in listOf("ppt", "pptx")) {
-                        Icons.Default.PlayArrow
-                    } else {
-                        Icons.Default.Description
                     }
                     
-                    val rawUri = p.uriString?.let { Uri.parse(it) }
-                    val validatedUri = verifyUri(rawUri)
+                    val savedDate = java.time.Instant.ofEpochMilli(data.timestamp).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                    val nowDate = java.time.LocalDate.now()
+                    val calendarElapsedDays = java.time.temporal.ChronoUnit.DAYS.between(savedDate, nowDate).toInt()
+                    
+                    val adjustedDayCounters = data.dayCounters.map {
+                        if (it.targetDateMillis > 0L) {
+                            val targetDate = java.time.Instant.ofEpochMilli(it.targetDateMillis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                            val daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(nowDate, targetDate).toInt().coerceAtLeast(0)
+                            it.copy(daysLeft = daysRemaining)
+                        } else if (calendarElapsedDays > 0) {
+                            it.copy(daysLeft = (it.daysLeft - calendarElapsedDays).coerceAtLeast(0), targetDateMillis = nowDate.plusDays((it.daysLeft - calendarElapsedDays).coerceAtLeast(0).toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                        } else {
+                            it.copy(targetDateMillis = nowDate.plusDays(it.daysLeft.toLong()).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+                        }
+                    }
+                    
+                    val restoredFiles = data.files.map { p ->
+                        val ext = p.title.substringAfterLast('.', "").lowercase()
+                        
+                        val icon = if (p.iconName != null) {
+                            when (p.iconName) {
+                                "Filled.Image" -> Icons.Default.Image
+                                "Filled.Audiotrack" -> Icons.Default.Audiotrack
+                                "Filled.Movie" -> Icons.Default.Movie
+                                "Filled.Description" -> Icons.Default.Description
+                                "Filled.List" -> Icons.Default.List
+                                "Filled.PlayArrow" -> Icons.Default.PlayArrow
+                                "Filled.Folder" -> Icons.Default.Folder
+                                else -> Icons.Default.Description
+                            }
+                        } else if (p.isFolder) {
+                            Icons.Default.Folder
+                        } else if (ext in listOf("png","jpg","jpeg","gif", "webp", "bmp")) {
+                            Icons.Default.Image
+                        } else if (ext in listOf("mp3", "m4a", "wav")) {
+                            Icons.Default.Audiotrack
+                        } else if (ext in listOf("mp4", "mkv", "avi")) {
+                            Icons.Default.Movie
+                        } else if (ext == "pdf") {
+                            Icons.Default.Description
+                        } else if (ext in listOf("doc", "docx", "txt", "rtf")) {
+                            Icons.Default.Description
+                        } else if (ext in listOf("xls", "xlsx", "csv")) {
+                            Icons.Default.List
+                        } else if (ext in listOf("ppt", "pptx")) {
+                            Icons.Default.PlayArrow
+                        } else {
+                            Icons.Default.Description
+                        }
+                        
+                        val rawUri = p.uriString?.let { Uri.parse(it) }
+                        val validatedUri = verifyUri(rawUri)
 
-                    LibraryItem(
-                        id = p.id,
-                        title = p.title,
-                        subtitle = p.subtitle,
-                        icon = icon,
-                        iconTint = Cyan400,
-                        iconBg = Cyan500.copy(alpha = 0.2f),
-                        tags = p.tags,
-                        uri = validatedUri,
-                        isFolder = p.isFolder,
-                        parentId = p.parentId,
-                        lastAccessedAt = if (p.lastAccessedAt > 0L) p.lastAccessedAt else System.currentTimeMillis(),
-                        driveFileId = p.driveFileId,
-                        fileSize = p.fileSize
-                    )
-                }
-                
-                _timers.value = adjustedTimers
-                _dayCounters.value = adjustedDayCounters
-                _isDarkMode.value = data.isDarkMode
-                _allReminders.value = data.reminders
-                _notes.value = data.notes
-                _pinnedNote1Id.value = data.pinnedNote1Id
-                _pinnedNote2Id.value = data.pinnedNote2Id
-                _stopwatches.value = data.stopwatches.map {
-                    if (it.isRunning) {
-                        val elapsedSinceSave = System.currentTimeMillis() - data.timestamp
-                        val totalElapsed = it.elapsedMillis + elapsedSinceSave
-                        it.copy(
-                            elapsedMillis = totalElapsed,
-                            startTime = System.currentTimeMillis() - totalElapsed
+                        LibraryItem(
+                            id = p.id,
+                            title = p.title,
+                            subtitle = p.subtitle,
+                            icon = icon,
+                            iconTint = Cyan400,
+                            iconBg = Cyan500.copy(alpha = 0.2f),
+                            tags = p.tags,
+                            uri = validatedUri,
+                            isFolder = p.isFolder,
+                            parentId = p.parentId,
+                            lastAccessedAt = if (p.lastAccessedAt > 0L) p.lastAccessedAt else System.currentTimeMillis(),
+                            driveFileId = p.driveFileId,
+                            fileSize = p.fileSize
                         )
-                    } else {
-                        it
                     }
+                    
+                    val adjustedStopwatches = data.stopwatches.map {
+                        if (it.isRunning) {
+                            val elapsedSinceSave = System.currentTimeMillis() - data.timestamp
+                            val totalElapsed = it.elapsedMillis + elapsedSinceSave
+                            it.copy(
+                                elapsedMillis = totalElapsed,
+                                startTime = System.currentTimeMillis() - totalElapsed
+                            )
+                        } else {
+                            it
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        _timers.value = adjustedTimers
+                        _dayCounters.value = adjustedDayCounters
+                        _isDarkMode.value = data.isDarkMode
+                        _allReminders.value = data.reminders
+                        _notes.value = data.notes
+                        _pinnedNote1Id.value = data.pinnedNote1Id
+                        _pinnedNote2Id.value = data.pinnedNote2Id
+                        _stopwatches.value = adjustedStopwatches
+                        _voiceNotes.value = data.voiceNotes
+                        _allFiles.value = restoredFiles
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("LibraryViewModel", "Error loading data", e)
                 }
-                _voiceNotes.value = data.voiceNotes
-                _allFiles.value = restoredFiles
-                if (restoredFiles.isEmpty()) {
+            } else {
+                withContext(Dispatchers.Main) {
                     _allFiles.value = emptyList()
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("LibraryViewModel", "Error loading data", e)
-                // Ignore load errors
             }
-        } else {
-            // Default files
-            _allFiles.value = emptyList()
         }
     }
 
@@ -1549,9 +1553,12 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 _openNoteIdDirectly.value = null
                 
                 // Clear ONLY specific user preferences, NOT all shared prefs or the directory
-                listOf("LibraryPrefs", "SettingsPrefs", "ScholarSpacePrefs").forEach { name ->
+                listOf("LibraryPrefs", "SettingsPrefs", "ScholarSpacePrefs", "auth_prefs").forEach { name ->
                     context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
                 }
+                
+                // Clear User Database
+                context.deleteDatabase("user_database")
                 
                 // Do NOT call saveData() here to avoid recreating cleared files.
             }

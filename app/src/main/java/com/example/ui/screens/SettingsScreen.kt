@@ -116,9 +116,17 @@ fun SettingsScreen(
             message = "Are you sure you want to log out?",
             confirmText = "Log Out",
             onConfirm = {
-                libraryViewModel.clearFiles(context)
-                authViewModel?.signOut(context) 
-                driveViewModel?.signOut(context)
+                // Launch a coroutine to handle sign out and data wiping
+                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    // Sign out from Google Drive and Identity
+                    driveViewModel?.signOut(context)
+                    authViewModel?.signOut(context)
+                    
+                    // Small delay to allow Google Play Services to process revocation
+                    kotlinx.coroutines.delay(1000)
+                    
+                    libraryViewModel.clearFiles(context)
+                }
             },
             onDismiss = { showLogoutDialog = false }
         )
@@ -676,6 +684,7 @@ fun SettingsScreen(
                                     bio = newBio,
                                     statusMsg = newStatus
                                 )
+                                driveViewModel?.syncMetadata(context, authViewModel!!, libraryViewModel, isUpload = true)
                                 activeEditField = null
                             }) {
                                 Text("Save", color = com.example.ui.theme.Cyan400)
@@ -841,6 +850,7 @@ fun SettingsScreen(
                                             bio = successUser.bio,
                                             statusMsg = successUser.statusMsg
                                         )
+                                        driveViewModel?.syncMetadata(context, authViewModel!!, libraryViewModel, isUpload = true)
                                         isRemovingProfilePic = true
                                     }
                                     .padding(vertical = 12.dp, horizontal = 0.dp),
@@ -1060,6 +1070,7 @@ fun SettingsScreen(
                                         bio = successUser.bio,
                                         statusMsg = successUser.statusMsg
                                     )
+                                    driveViewModel?.syncMetadata(context, authViewModel!!, libraryViewModel, isUpload = true)
                                     isSavingProfilePic = true
                                 }
                             }

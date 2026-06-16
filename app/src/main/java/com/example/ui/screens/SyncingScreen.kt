@@ -42,10 +42,8 @@ fun SyncingScreen(onFinished: () -> Unit) {
         )
     )
 
-    LaunchedEffect(Unit) {
-        delay(5000) // Show for 5 seconds as requested
-        onFinished()
-    }
+    // Parent controls the lifecycle so we don't need a timeout here
+    // LaunchedEffect(Unit) { delay(...) } removed
 
     com.example.ui.components.GlassBackground(
         modifier = Modifier.fillMaxSize(),
