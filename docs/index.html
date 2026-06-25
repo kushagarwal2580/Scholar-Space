@@ -892,24 +892,6 @@
                     appDataFolderId = res.result.id;
                 }
 
-                // Prepare dummy data to sync
-                const data = {
-                    email: "user@example.com",
-                    username: "Web User",
-                    appState: {
-                        subjects: [
-                            { id: "1", name: "Physics", icon: "science", color: "#FF5722", folderId: null }
-                        ],
-                        calendarItems: [
-                            { id: "1", title: "Midterm Exam", type: "Exam", date: new Date().getTime(), priority: "High", subjectId: "1" }
-                        ]
-                    },
-                    lastSynced: new Date().toISOString()
-                };
-                
-                const fileContent = JSON.stringify(data, null, 2);
-                const file = new Blob([fileContent], {type: 'application/json'});
-
                 // 3. First check if file exists
                 response = await gapi.client.drive.files.list({
                     q: `name='scholarspace_metadata.json' and '${appDataFolderId}' in parents and trashed=false`,
@@ -917,6 +899,72 @@
                 });
                 
                 let fileId = response.result.files.length > 0 ? response.result.files[0].id : null;
+                
+                let existingData = null;
+                if (fileId) {
+                    // Download existing data to avoid wiping Android app data
+                    try {
+                        const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                            headers: new Headers({ 'Authorization': 'Bearer ' + token })
+                        });
+                        existingData = await downloadRes.json();
+                        
+                        // Sync down notes to web
+                        if (existingData && existingData.appState && existingData.appState.notes) {
+                            notes = existingData.appState.notes.map(n => ({
+                                id: n.id,
+                                title: n.title,
+                                content: n.content,
+                                date: new Date(n.createdAt).toLocaleDateString()
+                            }));
+                            localStorage.setItem('scholar_space_notes', JSON.stringify(notes));
+                            renderNotesList();
+                            if(notes.length > 0) loadNoteInEditor(notes[0].id);
+                        }
+                    } catch (e) {
+                        console.error("Error reading existing metadata", e);
+                    }
+                }
+                
+                // Prepare merged data to sync back
+                const data = existingData || {
+                    email: "user@example.com",
+                    username: "Web User",
+                    profilePic: null,
+                    phone: null,
+                    bio: null,
+                    statusMsg: null,
+                    appState: {
+                        files: [],
+                        dayCounters: [],
+                        timers: [],
+                        isDarkMode: true,
+                        reminders: {},
+                        notes: [],
+                        voiceNotes: [],
+                        stopwatches: [],
+                        timestamp: new Date().getTime(),
+                        pinnedNote1Id: null,
+                        pinnedNote2Id: null
+                    },
+                    timestamp: new Date().getTime()
+                };
+                
+                // Sync up local web notes
+                if (data.appState) {
+                    data.appState.notes = notes.map(n => ({
+                        id: n.id,
+                        title: n.title,
+                        content: n.content,
+                        createdAt: new Date().getTime(),
+                        isPinned: false
+                    }));
+                    data.timestamp = new Date().getTime();
+                    data.appState.timestamp = new Date().getTime();
+                }
+                
+                const fileContent = JSON.stringify(data, null, 2);
+                const file = new Blob([fileContent], {type: 'application/json'});
                 
                 let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
                 let method = 'POST';
@@ -943,7 +991,7 @@
                     body: form
                 });
 
-                alert("Data successfully synced with Google Drive! (Saved as Scholar Space/App Data/scholarspace_metadata.json)");
+                alert("Data successfully synced with Google Drive!");
                 
             } catch (err) {
                 console.error(err);
