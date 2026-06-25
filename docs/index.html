@@ -393,20 +393,6 @@
                         <span class="material-icons-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
                         <span class="font-medium text-sm">Drop files here</span>
                     </div>
-
-                    <!-- Example File -->
-                    <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md">
-                        <div class="absolute right-2 top-2 p-1 rounded-full text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
-                        </div>
-                        <div class="flex-1 flex items-center justify-center p-4">
-                            <span class="material-icons-outlined text-red-400" style="font-size: 48px;">picture_as_pdf</span>
-                        </div>
-                        <div class="mt-4 shrink-0">
-                            <p class="font-medium text-white truncate text-sm">Mathematics.pdf</p>
-                            <p class="text-xs text-gray-400 mt-1">Local only</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -790,11 +776,33 @@
                     if (tokenResponse.error !== undefined) {
                         throw (tokenResponse);
                     }
+                    localStorage.setItem('scholar_space_google_token', tokenResponse.access_token);
+                    localStorage.setItem('scholar_space_google_token_expiry', new Date().getTime() + 3500000); // 1 hour approx
                     isGoogleDriveConnected = true;
                     updateDriveUI(true);
+                    loadLibraryFiles();
                 },
             });
             gisInited = true;
+            checkStoredToken();
+        }
+
+        function checkStoredToken() {
+            const token = localStorage.getItem('scholar_space_google_token');
+            const expiry = localStorage.getItem('scholar_space_google_token_expiry');
+            
+            if (token && expiry && new Date().getTime() < expiry) {
+                // Wait for gapi to initialize before setting token
+                const attemptSetToken = setInterval(() => {
+                    if (gapiInited) {
+                        clearInterval(attemptSetToken);
+                        gapi.client.setToken({ access_token: token });
+                        isGoogleDriveConnected = true;
+                        updateDriveUI(true);
+                        loadLibraryFiles();
+                    }
+                }, 100);
+            }
         }
 
         function connectGoogleDrive() {
@@ -813,6 +821,67 @@
             }
         }
         
+        async function loadLibraryFiles() {
+            if (!gapi.client.getToken()) return;
+            try {
+                // First get the App Data folder ID
+                let response = await gapi.client.drive.files.list({
+                    q: "name='Scholar Space' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                    spaces: 'drive',
+                });
+                if(response.result.files.length === 0) return;
+                let scholarFolderId = response.result.files[0].id;
+                
+                response = await gapi.client.drive.files.list({
+                    q: `name='App Data' and '${scholarFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+                    spaces: 'drive',
+                });
+                if(response.result.files.length === 0) return;
+                let appDataFolderId = response.result.files[0].id;
+
+                // Load all files inside Scholar Space folder (excluding App Data folder itself)
+                response = await gapi.client.drive.files.list({
+                    q: `'${scholarFolderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
+                    spaces: 'drive',
+                    fields: 'files(id, name, mimeType)'
+                });
+                
+                const files = response.result.files;
+                const grid = document.getElementById('library-grid');
+                
+                // Clear existing except upload box
+                grid.innerHTML = `
+                    <div class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
+                        <span class="material-icons-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
+                        <span class="font-medium text-sm">Drop files here</span>
+                    </div>
+                `;
+                
+                files.forEach(f => {
+                    let icon = 'insert_drive_file';
+                    let color = 'text-gray-400';
+                    if (f.mimeType.includes('pdf')) { icon = 'picture_as_pdf'; color = 'text-red-400'; }
+                    else if (f.mimeType.includes('image')) { icon = 'image'; color = 'text-blue-400'; }
+                    else if (f.mimeType.includes('audio')) { icon = 'audiotrack'; color = 'text-purple-400'; }
+                    
+                    grid.innerHTML += `
+                        <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
+                            <div class="flex-1 flex items-center justify-center p-4">
+                                <span class="material-icons-outlined ${color}" style="font-size: 48px;">${icon}</span>
+                            </div>
+                            <div class="mt-4 shrink-0">
+                                <p class="font-medium text-white truncate text-sm">${f.name}</p>
+                                <p class="text-xs text-gray-400 mt-1">Synced</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+            } catch(e) {
+                console.error('Error loading files:', e);
+            }
+        }
+
         function updateDriveUI(isConnected) {
             if(isConnected) {
                 // Hide login overlay
