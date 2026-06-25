@@ -102,6 +102,7 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                 val idToken = account?.idToken
                 
                 if (email != null && idToken != null) {
+                    val hasDrivePerm = com.google.android.gms.auth.api.signin.GoogleSignIn.hasPermissions(account, com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.file"))
                     val displayName = account.displayName ?: email.split("@")[0]
                     val fbCred = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
                     com.google.firebase.auth.FirebaseAuth.getInstance().signInWithCredential(fbCred).addOnCompleteListener { fbTask ->
@@ -120,7 +121,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                     profilePic = existingUser?.profilePic,
                                     phone = existingUser?.phone,
                                     bio = existingUser?.bio,
-                                    statusMsg = existingUser?.statusMsg
+                                    statusMsg = existingUser?.statusMsg,
+                                    hasDrivePermission = hasDrivePerm
                                 )
                             } else {
                                 // Local fallback
@@ -138,7 +140,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                         profilePic = existingUserLocal.profilePic,
                                         phone = existingUserLocal.phone,
                                         bio = existingUserLocal.bio,
-                                        statusMsg = existingUserLocal.statusMsg
+                                        statusMsg = existingUserLocal.statusMsg,
+                                        hasDrivePermission = hasDrivePerm
                                     )
                                 } else {
                                     _uiState.value = AuthState.Error("Failed to create local account", true)
@@ -168,6 +171,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                 val email = account.email ?: return@launch
                 val displayName = account.displayName ?: email
                 
+                val hasDrivePerm = com.google.android.gms.auth.api.signin.GoogleSignIn.hasPermissions(account, com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.file"))
+                
                 val existingUser = userRepository.getUserByEmail(email)
                 if (existingUser != null) {
                     prefs.edit().putString("loggedInEmail", email).apply()
@@ -177,7 +182,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                         profilePic = existingUser.profilePic,
                         phone = existingUser.phone,
                         bio = existingUser.bio,
-                        statusMsg = existingUser.statusMsg
+                        statusMsg = existingUser.statusMsg,
+                        hasDrivePermission = hasDrivePerm
                     )
                 } else {
                     _uiState.value = AuthState.Error("NO_ACCOUNT_FOUND", true)
@@ -199,7 +205,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                     profilePic = currentState.profilePic,
                     phone = currentState.phone,
                     bio = currentState.bio,
-                    statusMsg = currentState.statusMsg
+                    statusMsg = currentState.statusMsg,
+                    hasDrivePermission = currentState.hasDrivePermission
                 )
             }
         }
@@ -229,7 +236,8 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                     profilePic = profilePic,
                     phone = phone,
                     bio = bio,
-                    statusMsg = statusMsg
+                    statusMsg = statusMsg,
+                    hasDrivePermission = currentState.hasDrivePermission
                 )
             }
         }
@@ -784,7 +792,8 @@ sealed interface AuthState {
         val profilePic: String? = null,
         val phone: String? = null,
         val bio: String? = null,
-        val statusMsg: String? = null
+        val statusMsg: String? = null,
+        val hasDrivePermission: Boolean = false
     ) : AuthState
     data class Error(val message: String, val isGoogleAuthError: Boolean = false) : AuthState
 }

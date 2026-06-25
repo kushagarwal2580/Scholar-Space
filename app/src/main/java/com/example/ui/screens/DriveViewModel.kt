@@ -53,12 +53,21 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     fun setAppUserEmail(context: Context, appEmail: String?) {
         currentAppUserEmail = appEmail
         if (appEmail != null) {
-            // Automatically use the app's Google account for Drive
-            val linkedDriveEmail = appEmail 
-            _activeAccount.value = linkedDriveEmail
-            _isConnected.value = true
-            fetchDriveStorage(context, linkedDriveEmail)
-            setupScholarSpaceFolder(context, linkedDriveEmail)
+            val account = GoogleSignIn.getLastSignedInAccount(context)
+            if (account != null && account.email == appEmail && GoogleSignIn.hasPermissions(account, Scope("https://www.googleapis.com/auth/drive.file"))) {
+                // Automatically use the app's Google account for Drive
+                val linkedDriveEmail = appEmail 
+                _activeAccount.value = linkedDriveEmail
+                _isConnected.value = true
+                fetchDriveStorage(context, linkedDriveEmail)
+                setupScholarSpaceFolder(context, linkedDriveEmail)
+            } else {
+                _activeAccount.value = null
+                _isConnected.value = false
+                _storageUsage.value = 0
+                _storageLimit.value = 1
+                _scholarSpaceFolderId.value = null
+            }
         } else {
             _activeAccount.value = null
             _isConnected.value = false
@@ -111,7 +120,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         val account = GoogleSignIn.getLastSignedInAccount(application)
-        if (account != null && account.email != null) {
+        if (account != null && account.email != null && GoogleSignIn.hasPermissions(account, Scope("https://www.googleapis.com/auth/drive.file"))) {
             _activeAccount.value = account.email
             _isConnected.value = true
         }
@@ -159,6 +168,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         try {
             val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(intent)
             val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            if (account != null && !com.google.android.gms.auth.api.signin.GoogleSignIn.hasPermissions(account, com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/drive.file"))) {
+                android.widget.Toast.makeText(context, "Google Drive permission is required to enable sync.", android.widget.Toast.LENGTH_LONG).show()
+                return
+            }
             if (account != null && account.email != null) {
                 handleSignInEmail(context, account.email!!)
             } else {

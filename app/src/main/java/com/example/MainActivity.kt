@@ -352,19 +352,36 @@ class MainActivity : ComponentActivity() {
                             }
                         } else {
                             // User is successfully authenticated
+                            val authSuccess = authState as AuthState.Success
+                            val isDriveConnected by driveViewModel.isConnected.collectAsState()
+                            
+                            val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                            ) { result ->
+                                driveViewModel.handleSignInResult(this@MainActivity, result.data)
+                            }
+                            
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                             ) {
-                                MainAppContent(
-                                    currentTab = currentTab,
-                                    isImeVisible = isImeVisible,
-                                    viewingItem = viewingItem,
-                                    authViewModel = authViewModel,
-                                    libraryViewModel = libraryViewModel,
-                                    driveViewModel = driveViewModel,
-                                    activity = this@MainActivity
-                                )
+                                if (!authSuccess.hasDrivePermission && !isDriveConnected) {
+                                    com.example.ui.screens.ConnectDriveScreen(
+                                        onConnectClick = {
+                                            googleSignInLauncher.launch(driveViewModel.getSignInIntent(this@MainActivity))
+                                        }
+                                    )
+                                } else {
+                                    MainAppContent(
+                                        currentTab = currentTab,
+                                        isImeVisible = isImeVisible,
+                                        viewingItem = viewingItem,
+                                        authViewModel = authViewModel,
+                                        libraryViewModel = libraryViewModel,
+                                        driveViewModel = driveViewModel,
+                                        activity = this@MainActivity
+                                    )
+                                }
 
                                 // Syncing Screen Overlay with slide-up out animation
                                 var syncFinished by androidx.compose.runtime.remember { mutableStateOf(true) }
