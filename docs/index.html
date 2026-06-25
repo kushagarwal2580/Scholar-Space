@@ -291,25 +291,15 @@
                     <!-- Left Column (Main Stats / Storage) -->
                     <div class="col-span-1 border border-white/10 p-6 rounded-3xl bg-white/5 backdrop-blur-md flex flex-col gap-6">
                         <div>
-                            <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">LOCAL STORAGE</h3>
-                            <p class="text-3xl font-semibold text-white mb-2">0.0 GB <span class="text-lg text-gray-500 font-normal">/ 20.0 GB</span></p>
-                            <div class="w-full bg-white/5 rounded-full h-2 mb-1">
-                                <div class="bg-indigo-500 h-2 rounded-full" style="width: 5%"></div>
-                            </div>
-                            <button onclick="switchTab('library')" class="mt-4 w-full py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-colors">
-                                View Library
+                            <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">WORKSPACE</h3>
+                            <p class="text-3xl font-semibold text-white mb-2" id="notes-count-display">0 <span class="text-lg text-gray-500 font-normal">Notes</span></p>
+                            <button onclick="switchTab('notes')" class="mt-4 w-full py-2.5 text-sm font-medium text-white bg-indigo-600/20 text-indigo-300 rounded-xl hover:bg-indigo-600/30 transition-colors border border-indigo-500/20">
+                                View Notes
                             </button>
                         </div>
                         
+                        <div id="drive-info-display" class="hidden"></div>
                         <div class="flex-1"></div>
-                        
-                        <div class="bg-indigo-500/10 p-5 rounded-2xl border border-indigo-500/20">
-                            <h4 class="text-sm font-semibold text-indigo-300 mb-2">Connect Google Drive</h4>
-                            <p class="text-xs text-indigo-200/60 mb-4">Sync files and notes between devices seamlessly.</p>
-                            <button onclick="switchTab('settings')" class="w-full py-2 text-xs font-medium text-indigo-900 bg-indigo-300 rounded-lg hover:bg-indigo-200 transition-colors">
-                                Setup Sync
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Middle Column (Recent & Features) -->
@@ -345,13 +335,9 @@
 
                         <!-- Recents Area -->
                         <div class="border border-white/10 bg-white/5 backdrop-blur-md rounded-3xl p-6 flex-1 flex flex-col">
-                            <h3 class="text-sm font-bold text-gray-400 tracking-wider uppercase mb-6">Recent Files & Notes</h3>
-                            <div class="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 border-2 border-dashed border-white/10 rounded-2xl">
-                                <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                    <span class="material-icons-outlined text-gray-500 text-3xl">auto_awesome</span>
-                                </div>
-                                <h4 class="text-gray-300 font-medium mb-1">Your space is empty</h4>
-                                <p class="text-gray-500 text-sm max-w-sm">Create a note, upload a document, or sync with your Google Drive to get started.</p>
+                            <h3 class="text-sm font-bold text-gray-400 tracking-wider uppercase mb-6">Recent Notes</h3>
+                            <div id="recent-notes-container" class="flex-1 flex flex-col gap-2">
+                                <!-- Populated dynamically -->
                             </div>
                         </div>
 
@@ -384,6 +370,9 @@
                         <button class="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg flex items-center gap-2 hover:bg-white/10 font-medium transition-colors backdrop-blur-md">
                             <span class="material-icons-outlined">create_new_folder</span> New Folder
                         </button>
+                        <button class="px-4 py-2 bg-white/5 border border-white/10 text-red-400 rounded-lg flex items-center gap-2 hover:bg-red-500/20 font-medium transition-colors backdrop-blur-md" onclick="deleteSelectedLibraryFiles()">
+                            <span class="material-icons-outlined">delete</span> Delete Selected
+                        </button>
                     </div>
                 </div>
 
@@ -398,6 +387,26 @@
 
             <!-- Calendar Tab -->
             <div id="tab-calendar" class="tab-content max-w-4xl mx-auto py-6 space-y-8">
+                <!-- Calendar View -->
+                <div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Calendar</h3>
+                    <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-white" id="calendar-month-year">...</h2>
+                            <div class="flex gap-2">
+                                <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-lg bg-white/5 text-white flex items-center justify-center hover:bg-white/10"><span class="material-icons-outlined">chevron_left</span></button>
+                                <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-lg bg-white/5 text-white flex items-center justify-center hover:bg-white/10"><span class="material-icons-outlined">chevron_right</span></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-2 text-center text-sm mb-2">
+                            <div class="text-gray-500 font-medium">Sun</div><div class="text-gray-500 font-medium">Mon</div><div class="text-gray-500 font-medium">Tue</div><div class="text-gray-500 font-medium">Wed</div><div class="text-gray-500 font-medium">Thu</div><div class="text-gray-500 font-medium">Fri</div><div class="text-gray-500 font-medium">Sat</div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-2 text-center text-sm text-gray-300" id="calendar-days-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Reminders -->
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
@@ -462,9 +471,12 @@
                 <div class="flex gap-6 h-full">
                     <!-- Notes List -->
                     <div class="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
-                        <div class="p-4 border-b border-gray-100">
-                            <button onclick="createNewNote()" class="w-full py-3 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-indigo-100 transition-colors shadow-sm">
-                                <span class="material-icons-outlined">add</span> Create Note
+                        <div class="p-4 border-b border-white/5 flex gap-2">
+                            <button onclick="createNewNote()" class="flex-1 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-indigo-500/30 transition-colors shadow-sm">
+                                <span class="material-icons-outlined">add</span> Note
+                            </button>
+                            <button onclick="alert('Voice recording will be available soon in the web app. Use the Android app to record voice notes.')" class="px-4 py-3 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center hover:bg-purple-500/30 transition-colors shadow-sm" title="Record Voice Note">
+                                <span class="material-icons-outlined">mic</span>
                             </button>
                         </div>
                         <div id="notes-list" class="flex-1 overflow-y-auto p-3 space-y-2">
@@ -513,15 +525,15 @@
 
                 <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md">
                     <div class="p-6 border-b border-white/10">
-                        <h3 class="font-semibold text-white text-lg">App Preferences</h3>
+                        <h3 class="font-semibold text-white text-lg">Account Actions</h3>
                     </div>
                     <div class="divide-y divide-white/5">
                         <div class="p-5 px-6 flex items-center justify-between hover:bg-white/10 cursor-pointer transition-colors">
                             <div>
-                                <h4 class="font-medium text-white text-sm">Clear Local Data</h4>
-                                <p class="text-xs text-gray-500 mt-1">Wipe notes, timers and local settings.</p>
+                                <h4 class="font-medium text-white text-sm">Sign Out</h4>
+                                <p class="text-xs text-gray-500 mt-1">Sign out and clear local data from this browser.</p>
                             </div>
-                            <button onclick="clearLocalData()" class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg backdrop-blur-sm hover:bg-red-500/20 text-sm font-medium transition-colors">Clear Data</button>
+                            <button onclick="disconnectGoogleDrive()" class="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg backdrop-blur-sm hover:bg-red-500/20 text-sm font-medium transition-colors">Sign Out</button>
                         </div>
                     </div>
                 </div>
@@ -554,14 +566,21 @@
         }
 
         // --- Notifications/Utilities ---
-        function clearLocalData() {
-            if(confirm("Are you sure you want to clear all local Web App data? This cannot be undone.")) {
-                localStorage.removeItem("scholar_space_notes");
+        function disconnectGoogleDrive() {
+            if(confirm("Sign out and clear local data? This will remove all local notes and settings until you sign back in.")) {
+                localStorage.removeItem('scholar_space_google_token');
+                localStorage.removeItem('scholar_space_google_token_expiry');
+                localStorage.removeItem('scholar_space_notes');
                 notes = [];
                 currentNoteId = null;
                 renderNotesList();
                 updateDashboardMetrics();
-                alert("Data cleared.");
+                
+                if (gapiInited && gapi.client) {
+                    gapi.client.setToken(null);
+                }
+                isGoogleDriveConnected = false;
+                window.location.reload();
             }
         }
 
@@ -651,6 +670,7 @@
         function saveNotesToStorage() {
             localStorage.setItem('scholar_space_notes', JSON.stringify(notes));
             updateDashboardMetrics();
+            if(isGoogleDriveConnected) syncNow(true);
         }
 
         function createNewNote() {
@@ -680,21 +700,31 @@
             document.getElementById('note-editor').style.pointerEvents = 'auto';
 
             notes.forEach(note => {
-                const isActive = note.id === currentNoteId ? 'active border-l hover:bg-indigo-100 bg-indigo-50 border-indigo-500' : 'hover:bg-gray-50 border-transparent';
+                const isActive = note.id === currentNoteId ? 'active border-l hover:bg-white/10 bg-white/10 border-indigo-500' : 'hover:bg-white/5 border-transparent';
                 const displayTitle = note.title.trim() === '' ? 'Untitled Note' : note.title;
                 const displayBody = note.content.trim() === '' ? '...' : note.content.substring(0, 40) + '...';
                 
                 // Format relative time (basic)
-                const date = new Date(note.updatedAt);
+                const date = new Date(note.updatedAt || Date.now());
                 const timeString = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
                 const el = document.createElement('div');
-                el.className = `p-4 flex flex-col rounded-xl cursor-pointer transition-colors border-l-4 mb-2 ${isActive}`;
+                el.className = `p-4 flex flex-col rounded-xl cursor-pointer transition-colors border-l-4 mb-2 group relative ${isActive}`;
                 el.onclick = () => loadNoteInEditor(note.id);
                 el.innerHTML = `
-                    <h4 class="font-bold text-gray-800 text-sm truncate w-full mb-1">${displayTitle}</h4>
-                    <p class="text-xs text-gray-500 truncate w-full flex-1 mb-2">${displayBody}</p>
-                    <p class="text-[10px] text-gray-400 font-medium">${timeString}</p>
+                    <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center relative" onmouseleave="this.querySelector('.dropdown').classList.add('hidden')">
+                        <button class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" onclick="event.stopPropagation(); const d = this.nextElementSibling; d.classList.toggle('hidden');">
+                            <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
+                        </button>
+                        <div class="dropdown hidden absolute right-0 top-8 bg-[#1e293b] border border-white/10 rounded-lg shadow-xl z-20 py-1 w-32">
+                            <button class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 flex items-center gap-2" onclick="event.stopPropagation(); deleteNoteById('${note.id}')">
+                                <span class="material-icons-outlined text-sm">delete</span> Delete
+                            </button>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-white text-sm truncate w-full mb-1 pr-6">${displayTitle}</h4>
+                    <p class="text-xs text-gray-400 truncate w-full flex-1 mb-2">${displayBody}</p>
+                    <p class="text-[10px] text-gray-500 font-medium">${timeString}</p>
                 `;
                 notesListContainer.appendChild(el);
             });
@@ -727,9 +757,15 @@
 
         function deleteCurrentNote() {
             if(!currentNoteId) return;
+            deleteNoteById(currentNoteId);
+        }
+
+        function deleteNoteById(id) {
             if(confirm("Delete this note?")) {
-                notes = notes.filter(n => n.id !== currentNoteId);
-                currentNoteId = notes.length > 0 ? notes[0].id : null;
+                notes = notes.filter(n => n.id !== id);
+                if (currentNoteId === id) {
+                    currentNoteId = notes.length > 0 ? notes[0].id : null;
+                }
                 saveNotesToStorage();
                 renderNotesList();
                 if(currentNoteId) {
@@ -742,13 +778,105 @@
         }
 
         function updateDashboardMetrics() {
-            var countEl = document.getElementById('notes-count');
-            var barEl = document.getElementById('storage-bar');
-            if(countEl) countEl.innerText = `${notes.length} Notes Captured`;
-            if(barEl) {
-                let width = Math.min(100, Math.max(1, notes.length * 2));
-                barEl.style.width = width + "%";
+            var displayEl = document.getElementById('notes-count-display');
+            if(displayEl) {
+                displayEl.innerHTML = `${notes.length} <span class="text-lg text-gray-500 font-normal">Notes</span>`;
             }
+            
+            var recentContainer = document.getElementById('recent-notes-container');
+            if(recentContainer) {
+                recentContainer.innerHTML = '';
+                if(notes.length === 0) {
+                    recentContainer.innerHTML = `
+                        <div class="flex-1 flex flex-col items-center justify-center text-center px-4 py-8 border-2 border-dashed border-white/10 rounded-2xl">
+                            <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                <span class="material-icons-outlined text-gray-500 text-3xl">edit_note</span>
+                            </div>
+                            <h4 class="text-gray-300 font-medium mb-1">No notes yet</h4>
+                            <p class="text-gray-500 text-sm max-w-sm">Create a note to get started.</p>
+                        </div>
+                    `;
+                } else {
+                    const recentNotes = notes.slice(0, 4);
+                    recentNotes.forEach(note => {
+                        const displayTitle = note.title.trim() === '' ? 'Untitled Note' : note.title;
+                        const date = new Date(note.updatedAt || Date.now());
+                        const timeString = date.toLocaleDateString();
+                        recentContainer.innerHTML += `
+                            <div class="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors" onclick="switchTab('notes'); loadNoteInEditor('${note.id}')">
+                                <div class="flex items-center gap-3 overflow-hidden">
+                                    <div class="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center shrink-0">
+                                        <span class="material-icons-outlined text-indigo-400">description</span>
+                                    </div>
+                                    <div class="truncate">
+                                        <h4 class="text-sm font-semibold text-white truncate">${displayTitle}</h4>
+                                        <p class="text-xs text-gray-400">${timeString}</p>
+                                    </div>
+                                </div>
+                                <span class="material-icons-outlined text-gray-500 hover:text-white">chevron_right</span>
+                            </div>
+                        `;
+                    });
+                }
+            }
+        }
+
+        // --- Calendar Logic ---
+        let currentCalendarDate = new Date();
+        
+        function renderCalendar() {
+            const monthYearEl = document.getElementById('calendar-month-year');
+            const gridEl = document.getElementById('calendar-days-grid');
+            if (!monthYearEl || !gridEl) return;
+            
+            const month = currentCalendarDate.getMonth();
+            const year = currentCalendarDate.getFullYear();
+            
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            monthYearEl.innerText = `${months[month]} ${year}`;
+            
+            gridEl.innerHTML = '';
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            
+            const today = new Date();
+            const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+            const currentDay = today.getDate();
+            
+            // Previous month overflow days
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = prevMonthDays - i;
+                gridEl.innerHTML += `<div class="p-2 opacity-30">${day}</div>`;
+            }
+            
+            // Current month days
+            for (let day = 1; day <= daysInMonth; day++) {
+                let classes = "p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors";
+                if (isCurrentMonth && day === currentDay) {
+                    classes = "p-2 bg-indigo-600 rounded-lg cursor-pointer font-bold text-white shadow-lg shadow-indigo-600/30";
+                }
+                gridEl.innerHTML += `<div class="${classes}">${day}</div>`;
+            }
+            
+            // Next month overflow days
+            const totalCells = firstDay + daysInMonth;
+            let nextDays = 0;
+            if (totalCells <= 35) {
+                nextDays = 35 - totalCells;
+            } else {
+                nextDays = 42 - totalCells;
+            }
+            
+            for (let day = 1; day <= nextDays; day++) {
+                gridEl.innerHTML += `<div class="p-2 opacity-30">${day}</div>`;
+            }
+        }
+        
+        function changeCalendarMonth(offset) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+            renderCalendar();
         }
 
         // --- Google Drive Sync Logic ---
@@ -821,9 +949,62 @@
             }
         }
         
+        let selectedLibraryFiles = new Set();
+        
+        function toggleFileSelection(id, event) {
+            event.stopPropagation();
+            if (selectedLibraryFiles.has(id)) {
+                selectedLibraryFiles.delete(id);
+            } else {
+                selectedLibraryFiles.add(id);
+            }
+        }
+
+        async function deleteSelectedLibraryFiles() {
+            if (selectedLibraryFiles.size === 0) {
+                alert("No files selected.");
+                return;
+            }
+            if (!gapi.client.getToken()) return;
+            if (confirm(`Are you sure you want to delete ${selectedLibraryFiles.size} selected file(s) from Google Drive?`)) {
+                for (let id of selectedLibraryFiles) {
+                    try {
+                        await gapi.client.drive.files.delete({ fileId: id });
+                    } catch (e) {
+                        console.error("Failed to delete", id, e);
+                    }
+                }
+                selectedLibraryFiles.clear();
+                loadLibraryFiles();
+            }
+        }
+
         async function loadLibraryFiles() {
+            selectedLibraryFiles.clear();
             if (!gapi.client.getToken()) return;
             try {
+                // Fetch storage quota
+                let aboutResp = await gapi.client.drive.about.get({ fields: 'storageQuota' });
+                if (aboutResp.result && aboutResp.result.storageQuota) {
+                    let usage = aboutResp.result.storageQuota.usage;
+                    let limit = aboutResp.result.storageQuota.limit;
+                    let usageGB = (usage / (1024*1024*1024)).toFixed(2);
+                    let limitGB = limit ? (limit / (1024*1024*1024)).toFixed(2) : '15.00';
+                    let percent = limit ? Math.min(100, Math.round((usage / limit) * 100)) : 0;
+                    
+                    let driveInfoEl = document.getElementById('drive-info-display');
+                    if (driveInfoEl) {
+                        driveInfoEl.innerHTML = `
+                            <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">DRIVE STORAGE</h3>
+                            <p class="text-3xl font-semibold text-white mb-2">${usageGB} GB <span class="text-lg text-gray-500 font-normal">/ ${limitGB} GB</span></p>
+                            <div class="w-full bg-white/5 rounded-full h-2 mb-1">
+                                <div class="bg-indigo-500 h-2 rounded-full" style="width: ${percent}%"></div>
+                            </div>
+                        `;
+                        driveInfoEl.classList.remove('hidden');
+                    }
+                }
+
                 // First get the App Data folder ID
                 let response = await gapi.client.drive.files.list({
                     q: "name='Scholar Space' and mimeType='application/vnd.google-apps.folder' and trashed=false",
@@ -865,11 +1046,17 @@
                     else if (f.mimeType.includes('audio')) { icon = 'audiotrack'; color = 'text-purple-400'; }
                     
                     grid.innerHTML += `
-                        <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
-                            <div class="flex-1 flex items-center justify-center p-4">
+                        <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md">
+                            <div class="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <input type="checkbox" class="w-4 h-4 rounded border-white/20 bg-black/20 accent-indigo-500 mr-1" onclick="toggleFileSelection('${f.id}', event)">
+                                <button class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" onclick="event.stopPropagation(); alert('Options for ${f.name}')">
+                                    <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
+                                </button>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center p-4" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
                                 <span class="material-icons-outlined ${color}" style="font-size: 48px;">${icon}</span>
                             </div>
-                            <div class="mt-4 shrink-0">
+                            <div class="mt-4 shrink-0" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
                                 <p class="font-medium text-white truncate text-sm">${f.name}</p>
                                 <p class="text-xs text-gray-400 mt-1">Synced</p>
                             </div>
@@ -899,10 +1086,16 @@
                         </div>
                         <h4 class="font-semibold text-white mb-2 text-lg">Google Drive Connected</h4>
                         <p class="text-sm text-gray-500 mb-8 max-w-sm">Your library and notes are actively syncing with your Google Drive.</p>
-                        <button onclick="syncNow()" class="px-6 py-3 bg-indigo-600 rounded-xl flex items-center gap-2 font-medium hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/20">
-                            <span class="material-icons-outlined">sync</span>
-                            Sync Now
-                        </button>
+                        <div class="flex gap-4">
+                            <button onclick="syncNow()" class="px-6 py-3 bg-indigo-600 rounded-xl flex items-center gap-2 font-medium hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/20">
+                                <span class="material-icons-outlined">sync</span>
+                                Sync Now
+                            </button>
+                            <button onclick="disconnectGoogleDrive()" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 font-medium hover:bg-red-500/20 text-red-400 transition-colors shadow-lg shadow-black/10">
+                                <span class="material-icons-outlined">logout</span>
+                                Sign Out
+                            </button>
+                        </div>
                     `;
                 }
                 
@@ -911,11 +1104,12 @@
             }
         }
         
-        async function syncNow() {
+        async function syncNow(silent = false) {
+            if (!isGoogleDriveConnected || !gapi.client.getToken()) return;
             try {
                 // Show loading state
                 const btn = document.querySelector('button[onclick="syncNow()"]');
-                if (btn) {
+                if (btn && !silent) {
                     btn.innerHTML = `<span class="material-icons-outlined animate-spin" style="animation: spin 1s linear infinite;">sync</span> Syncing...`;
                     btn.disabled = true;
                 }
@@ -1060,15 +1254,15 @@
                     body: form
                 });
 
-                alert("Data successfully synced with Google Drive!");
+                if (!silent) alert("Data successfully synced with Google Drive!");
                 
             } catch (err) {
                 console.error(err);
-                alert("Error syncing to Google Drive. Check console for details.");
+                if (!silent) alert("Error syncing to Google Drive. Check console for details.");
             } finally {
                 // Restore button
                 const btn = document.querySelector('button[onclick="syncNow()"]');
-                if (btn) {
+                if (btn && !silent) {
                     btn.innerHTML = `<span class="material-icons-outlined">sync</span> Sync Now`;
                     btn.disabled = false;
                 }
@@ -1090,6 +1284,7 @@
             }
             updateDashboardMetrics();
             updateTimerDisplay(); // init SVG display
+            renderCalendar();
         };
         
     </script>
