@@ -290,12 +290,11 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- Left Column (Main Stats / Storage) -->
                     <div class="col-span-1 border border-white/10 p-6 rounded-3xl bg-white/5 backdrop-blur-md flex flex-col gap-6">
-                        <div>
-                            <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">WORKSPACE</h3>
-                            <p class="text-3xl font-semibold text-white mb-2" id="notes-count-display">0 <span class="text-lg text-gray-500 font-normal">Notes</span></p>
-                            <button onclick="switchTab('notes')" class="mt-4 w-full py-2.5 text-sm font-medium text-white bg-indigo-600/20 text-indigo-300 rounded-xl hover:bg-indigo-600/30 transition-colors border border-indigo-500/20">
-                                View Notes
-                            </button>
+                        <div class="flex-1 flex flex-col">
+                            <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">RECENT FILES</h3>
+                            <div id="recent-files-container" class="flex-1 flex flex-col gap-2">
+                                <div class="text-center text-gray-500 text-sm py-4">No recent files</div>
+                            </div>
                         </div>
                         
                         <div id="drive-info-display" class="hidden"></div>
@@ -306,7 +305,7 @@
                     <div class="col-span-1 lg:col-span-2 xl:col-span-2 flex flex-col gap-6">
                         
                         <!-- Quick Actions Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
                             <div onclick="switchTab('notes'); createNewNote();" class="border border-white/10 bg-white/5 hover:bg-white/10 p-4 rounded-3xl cursor-pointer transition-all flex flex-col items-center justify-center h-32 backdrop-blur-md">
                                 <div class="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center mb-3">
                                     <span class="material-icons-outlined text-indigo-400">edit</span>
@@ -318,6 +317,12 @@
                                     <span class="material-icons-outlined text-emerald-400">upload_file</span>
                                 </div>
                                 <span class="text-sm font-medium text-gray-300">Upload</span>
+                            </div>
+                            <div onclick="openVoicePopup()" class="border border-white/10 bg-white/5 hover:bg-white/10 p-4 rounded-3xl cursor-pointer transition-all flex flex-col items-center justify-center h-32 backdrop-blur-md">
+                                <div class="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mb-3">
+                                    <span class="material-icons-outlined text-purple-400">mic</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-300">Record Voice</span>
                             </div>
                             <div onclick="switchTab('calendar')" class="border border-white/10 bg-white/5 hover:bg-white/10 p-4 rounded-3xl cursor-pointer transition-all flex flex-col items-center justify-center h-32 backdrop-blur-md">
                                 <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center mb-3">
@@ -337,7 +342,7 @@
                         <div class="border border-white/10 bg-white/5 backdrop-blur-md rounded-3xl p-6 flex-1 flex flex-col">
                             <h3 class="text-sm font-bold text-gray-400 tracking-wider uppercase mb-6">Recent Notes</h3>
                             <div id="recent-notes-container" class="flex-1 flex flex-col gap-2">
-                                <!-- Populated dynamically -->
+                                <div class="text-center text-gray-500 text-sm py-4">No recent notes</div>
                             </div>
                         </div>
 
@@ -364,11 +369,12 @@
             <div id="tab-library" class="tab-content max-w-6xl mx-auto">
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex gap-2">
-                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 hover:bg-indigo-700 font-medium shadow-sm transition-colors backdrop-blur-md">
+                        <input type="file" id="library-file-input" class="hidden" onchange="uploadFileToDrive(event)" multiple>
+                        <button onclick="document.getElementById('library-file-input').click()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 hover:bg-indigo-700 font-medium shadow-sm transition-colors backdrop-blur-md">
                             <span class="material-icons-outlined">add</span> Upload
                         </button>
-                        <button class="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg flex items-center gap-2 hover:bg-white/10 font-medium transition-colors backdrop-blur-md">
-                            <span class="material-icons-outlined">create_new_folder</span> New Folder
+                        <button onclick="openVoicePopup()" class="px-4 py-2 bg-rose-600/80 border border-rose-500/50 text-white rounded-lg flex items-center gap-2 hover:bg-rose-600 font-medium transition-colors backdrop-blur-md">
+                            <span class="material-icons-outlined">mic</span> Record Voice
                         </button>
                         <button class="px-4 py-2 bg-white/5 border border-white/10 text-red-400 rounded-lg flex items-center gap-2 hover:bg-red-500/20 font-medium transition-colors backdrop-blur-md" onclick="deleteSelectedLibraryFiles()">
                             <span class="material-icons-outlined">delete</span> Delete Selected
@@ -378,9 +384,9 @@
 
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" id="library-grid">
                     <!-- Drop area / Upload -->
-                    <div class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
+                    <div onclick="document.getElementById('library-file-input').click()" class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
                         <span class="material-icons-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
-                        <span class="font-medium text-sm">Drop files here</span>
+                        <span class="font-medium text-sm">Click to upload</span>
                     </div>
                 </div>
             </div>
@@ -411,10 +417,12 @@
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
                         Reminders
-                        <button class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
+                        <button onclick="document.getElementById('reminder-popup').classList.remove('hidden')" class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
                     </h3>
-                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
-                        No reminders yet
+                    <div id="reminders-container" class="flex flex-col gap-2">
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
+                            No reminders yet
+                        </div>
                     </div>
                 </div>
 
@@ -422,10 +430,12 @@
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
                         Day Counters
-                        <button class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
+                        <button onclick="document.getElementById('counter-popup').classList.remove('hidden')" class="text-indigo-400 hover:text-indigo-300 p-1 rounded"><span class="material-icons-outlined">add</span></button>
                     </h3>
-                    <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
-                        No day counters
+                    <div id="day-counters-container" class="flex flex-col gap-2">
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">
+                            No day counters
+                        </div>
                     </div>
                 </div>
 
@@ -541,6 +551,45 @@
             
             </div>
         </main>
+    </div>
+
+    <!-- Popups -->
+    <div id="reminder-popup" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-[#1e293b] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+            <h3 class="text-white font-bold mb-4">Add Reminder</h3>
+            <input type="text" id="reminder-title" placeholder="Reminder title..." class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white mb-4 focus:outline-none focus:border-indigo-500">
+            <input type="date" id="reminder-date" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white mb-6 focus:outline-none focus:border-indigo-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('reminder-popup').classList.add('hidden')" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                <button onclick="addReminder()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+    <div id="counter-popup" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-[#1e293b] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+            <h3 class="text-white font-bold mb-4">Add Day Counter</h3>
+            <input type="text" id="counter-title" placeholder="Event name..." class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white mb-4 focus:outline-none focus:border-indigo-500">
+            <input type="date" id="counter-date" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white mb-6 focus:outline-none focus:border-indigo-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('counter-popup').classList.add('hidden')" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                <button onclick="addDayCounter()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="voice-popup" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-[#1e293b] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl text-center">
+            <h3 class="text-white font-bold mb-4">Record Audio Note</h3>
+            <div class="flex items-center justify-center py-6">
+                <button id="record-btn" onclick="toggleRecording()" class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-lg shadow-red-500/20">
+                    <span class="material-icons-outlined text-3xl" id="record-icon">mic</span>
+                </button>
+            </div>
+            <p id="record-status" class="text-sm text-gray-400 mb-6">Click to start recording</p>
+            <div class="flex justify-center gap-2">
+                <button onclick="closeVoicePopup()" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Application Logic -->
@@ -712,7 +761,7 @@
                 el.className = `p-4 flex flex-col rounded-xl cursor-pointer transition-colors border-l-4 mb-2 group relative ${isActive}`;
                 el.onclick = () => loadNoteInEditor(note.id);
                 el.innerHTML = `
-                    <div class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center relative" onmouseleave="this.querySelector('.dropdown').classList.add('hidden')">
+                    <div class="absolute right-2 top-2 transition-opacity flex items-center" onmouseleave="this.querySelector('.dropdown')?.classList.add('hidden')">
                         <button class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" onclick="event.stopPropagation(); const d = this.nextElementSibling; d.classList.toggle('hidden');">
                             <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
                         </button>
@@ -853,11 +902,21 @@
             
             // Current month days
             for (let day = 1; day <= daysInMonth; day++) {
-                let classes = "p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors";
+                let classes = "p-2 hover:bg-white/5 rounded-lg cursor-pointer transition-colors relative";
                 if (isCurrentMonth && day === currentDay) {
-                    classes = "p-2 bg-indigo-600 rounded-lg cursor-pointer font-bold text-white shadow-lg shadow-indigo-600/30";
+                    classes = "p-2 bg-indigo-600 rounded-lg cursor-pointer font-bold text-white shadow-lg shadow-indigo-600/30 relative";
                 }
-                gridEl.innerHTML += `<div class="${classes}">${day}</div>`;
+                
+                let dayStr = `${year}-${(month+1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                
+                let hasReminder = typeof remindersData !== 'undefined' && remindersData.some(r => r.date === dayStr);
+                let hasCounter = typeof countersData !== 'undefined' && countersData.some(c => c.date === dayStr);
+                
+                let dot = '';
+                if(hasReminder) dot = '<span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-indigo-400 rounded-full"></span>';
+                else if(hasCounter) dot = '<span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-emerald-400 rounded-full"></span>';
+                
+                gridEl.innerHTML += `<div class="${classes}">${day}${dot}</div>`;
             }
             
             // Next month overflow days
@@ -877,6 +936,215 @@
         function changeCalendarMonth(offset) {
             currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
             renderCalendar();
+        }
+
+        // --- Reminders and Day Counters Logic ---
+        let remindersData = JSON.parse(localStorage.getItem('scholar_space_reminders') || '[]');
+        let countersData = JSON.parse(localStorage.getItem('scholar_space_counters') || '[]');
+
+        function saveCalendarData() {
+            localStorage.setItem('scholar_space_reminders', JSON.stringify(remindersData));
+            localStorage.setItem('scholar_space_counters', JSON.stringify(countersData));
+        }
+
+        function renderCalendarEvents() {
+            const remContainer = document.getElementById('reminders-container');
+            if (remindersData.length === 0) {
+                remContainer.innerHTML = '<div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">No reminders yet</div>';
+            } else {
+                remContainer.innerHTML = '';
+                remindersData.forEach(rem => {
+                    remContainer.innerHTML += `
+                        <div class="bg-white/5 border border-white/10 p-4 rounded-xl flex items-center justify-between group">
+                            <div>
+                                <h4 class="text-white font-medium text-sm mb-1">${rem.title}</h4>
+                                <p class="text-xs text-gray-400">${rem.date}</p>
+                            </div>
+                            <button onclick="deleteReminder('${rem.id}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="material-icons-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+
+            const counterContainer = document.getElementById('day-counters-container');
+            if (countersData.length === 0) {
+                counterContainer.innerHTML = '<div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-center text-gray-500 backdrop-blur-md">No day counters</div>';
+            } else {
+                counterContainer.innerHTML = '';
+                countersData.forEach(c => {
+                    const targetDate = new Date(c.date);
+                    const diffTime = targetDate - new Date();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const daysStr = diffDays > 0 ? `${diffDays} days left` : `${Math.abs(diffDays)} days ago`;
+
+                    counterContainer.innerHTML += `
+                        <div class="bg-white/5 border border-white/10 p-4 rounded-xl flex items-center justify-between group">
+                            <div>
+                                <h4 class="text-white font-medium text-sm mb-1">${c.title}</h4>
+                                <p class="text-xs text-indigo-400 font-bold">${daysStr}</p>
+                            </div>
+                            <button onclick="deleteDayCounter('${c.id}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span class="material-icons-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function addReminder() {
+            const title = document.getElementById('reminder-title').value;
+            const date = document.getElementById('reminder-date').value;
+            if (!title) return;
+            remindersData.push({ id: Date.now().toString(), title, date });
+            saveCalendarData();
+            renderCalendarEvents();
+            renderCalendar();
+            document.getElementById('reminder-title').value = '';
+            document.getElementById('reminder-date').value = '';
+            document.getElementById('reminder-popup').classList.add('hidden');
+        }
+
+        function deleteReminder(id) {
+            remindersData = remindersData.filter(r => r.id !== id);
+            saveCalendarData();
+            renderCalendarEvents();
+            renderCalendar();
+        }
+
+        function addDayCounter() {
+            const title = document.getElementById('counter-title').value;
+            const date = document.getElementById('counter-date').value;
+            if (!title || !date) return;
+            countersData.push({ id: Date.now().toString(), title, date });
+            saveCalendarData();
+            renderCalendarEvents();
+            renderCalendar();
+            document.getElementById('counter-title').value = '';
+            document.getElementById('counter-date').value = '';
+            document.getElementById('counter-popup').classList.add('hidden');
+        }
+
+        function deleteDayCounter(id) {
+            countersData = countersData.filter(c => c.id !== id);
+            saveCalendarData();
+            renderCalendarEvents();
+            renderCalendar();
+        }
+
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+
+        function openVoicePopup() {
+            document.getElementById('voice-popup').classList.remove('hidden');
+        }
+
+        function closeVoicePopup() {
+            document.getElementById('voice-popup').classList.add('hidden');
+            if(isRecording && mediaRecorder) {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateRecordUI();
+            }
+        }
+
+        function updateRecordUI() {
+            const btn = document.getElementById('record-btn');
+            const icon = document.getElementById('record-icon');
+            const status = document.getElementById('record-status');
+            
+            if (isRecording) {
+                btn.classList.replace('bg-red-500', 'bg-white');
+                btn.classList.replace('hover:bg-red-600', 'hover:bg-gray-200');
+                btn.classList.replace('text-white', 'text-red-500');
+                icon.innerText = 'stop';
+                status.innerText = 'Recording... Click to stop';
+            } else {
+                btn.classList.replace('bg-white', 'bg-red-500');
+                btn.classList.replace('hover:bg-gray-200', 'hover:bg-red-600');
+                btn.classList.replace('text-red-500', 'text-white');
+                icon.innerText = 'mic';
+                status.innerText = 'Click to start recording';
+            }
+        }
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+                        const audioBlob = new Blob(audioChunks, { type: audioType });
+                        const extension = audioType.includes('mp4') ? 'm4a' : 'm4a'; // Force m4a extension
+                        const file = new File([audioBlob], `Audio Note ${new Date().toLocaleString()}.${extension}`, { type: audioType });
+                        
+                        // Try to upload to Drive if connected
+                        if (isGoogleDriveConnected && gapi.client.getToken()) {
+                            status.innerText = 'Saving to Drive...';
+                            await uploadFilesDirect([file]);
+                            alert('Audio note saved to Library!');
+                            closeVoicePopup();
+                        } else {
+                            alert('Please sign in to Google Drive first to save audio notes.');
+                        }
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    updateRecordUI();
+                } catch (e) {
+                    console.error("Microphone access denied:", e);
+                    alert("Could not access microphone.");
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateRecordUI();
+            }
+        }
+        
+        async function uploadFilesDirect(filesList) {
+            try {
+                let response = await gapi.client.drive.files.list({
+                    q: "name='Scholar Space' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                    spaces: 'drive',
+                });
+                
+                let folderId;
+                if(response.result.files.length === 0) {
+                    const folderMeta = { name: 'Scholar Space', mimeType: 'application/vnd.google-apps.folder' };
+                    const res = await gapi.client.drive.files.create({ resource: folderMeta, fields: 'id' });
+                    folderId = res.result.id;
+                } else {
+                    folderId = response.result.files[0].id;
+                }
+                
+                for(let file of filesList) {
+                    const metadata = { name: file.name, parents: [folderId] };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', file);
+                    
+                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: new Headers({ 'Authorization': 'Bearer ' + gapi.client.getToken().access_token }),
+                        body: form,
+                    });
+                }
+                loadLibraryFiles();
+            } catch (e) {
+                console.error("Upload error", e);
+            }
         }
 
         // --- Google Drive Sync Logic ---
@@ -988,15 +1256,22 @@
                 if (aboutResp.result && aboutResp.result.storageQuota) {
                     let usage = aboutResp.result.storageQuota.usage;
                     let limit = aboutResp.result.storageQuota.limit;
-                    let usageGB = (usage / (1024*1024*1024)).toFixed(2);
-                    let limitGB = limit ? (limit / (1024*1024*1024)).toFixed(2) : '15.00';
+                    
+                    let formatGB = (bytes) => {
+                        let gb = bytes / (1024*1024*1024);
+                        if (gb >= 1000) return (gb / 1024).toFixed(2) + ' TB';
+                        return gb.toFixed(2) + ' GB';
+                    };
+                    
+                    let usageStr = formatGB(usage);
+                    let limitStr = limit ? formatGB(limit) : '15.00 GB';
                     let percent = limit ? Math.min(100, Math.round((usage / limit) * 100)) : 0;
                     
                     let driveInfoEl = document.getElementById('drive-info-display');
                     if (driveInfoEl) {
                         driveInfoEl.innerHTML = `
                             <h3 class="text-xs font-bold text-indigo-400 tracking-widest mb-4">DRIVE STORAGE</h3>
-                            <p class="text-3xl font-semibold text-white mb-2">${usageGB} GB <span class="text-lg text-gray-500 font-normal">/ ${limitGB} GB</span></p>
+                            <p class="text-3xl font-semibold text-white mb-2">${usageStr} <span class="text-lg text-gray-500 font-normal">/ ${limitStr}</span></p>
                             <div class="w-full bg-white/5 rounded-full h-2 mb-1">
                                 <div class="bg-indigo-500 h-2 rounded-full" style="width: ${percent}%"></div>
                             </div>
@@ -1032,9 +1307,9 @@
                 
                 // Clear existing except upload box
                 grid.innerHTML = `
-                    <div class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
+                    <div onclick="document.getElementById('library-file-input').click()" class="border-2 border-dashed border-white/20 rounded-xl bg-white/5 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-white/10 transition-colors text-indigo-300 group backdrop-blur-md">
                         <span class="material-icons-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
-                        <span class="font-medium text-sm">Drop files here</span>
+                        <span class="font-medium text-sm">Click to upload</span>
                     </div>
                 `;
                 
@@ -1043,15 +1318,20 @@
                     let color = 'text-gray-400';
                     if (f.mimeType.includes('pdf')) { icon = 'picture_as_pdf'; color = 'text-red-400'; }
                     else if (f.mimeType.includes('image')) { icon = 'image'; color = 'text-blue-400'; }
-                    else if (f.mimeType.includes('audio')) { icon = 'audiotrack'; color = 'text-purple-400'; }
+                    else if (f.mimeType.includes('audio') || f.name.toLowerCase().endsWith('.m4a')) { icon = 'audiotrack'; color = 'text-purple-400'; }
                     
                     grid.innerHTML += `
-                        <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md">
-                            <div class="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <div class="bg-white/5 border text-left border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition-colors flex flex-col group relative h-48 backdrop-blur-md" onmouseleave="this.querySelector('.dropdown')?.classList.add('hidden')">
+                            <div class="absolute right-2 top-2 flex items-center gap-1 transition-opacity z-10">
                                 <input type="checkbox" class="w-4 h-4 rounded border-white/20 bg-black/20 accent-indigo-500 mr-1" onclick="toggleFileSelection('${f.id}', event)">
-                                <button class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" onclick="event.stopPropagation(); alert('Options for ${f.name}')">
+                                <button class="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-colors" onclick="event.stopPropagation(); const d = this.nextElementSibling; d.classList.toggle('hidden');">
                                     <span class="material-icons-outlined" style="font-size: 18px;">more_vert</span>
                                 </button>
+                                <div class="dropdown hidden absolute right-0 top-8 bg-[#1e293b] border border-white/10 rounded-lg shadow-xl z-20 py-1 w-32">
+                                    <button class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 flex items-center gap-2" onclick="event.stopPropagation(); deleteLibraryFile('${f.id}')">
+                                        <span class="material-icons-outlined text-sm">delete</span> Delete
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex-1 flex items-center justify-center p-4" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
                                 <span class="material-icons-outlined ${color}" style="font-size: 48px;">${icon}</span>
@@ -1064,8 +1344,98 @@
                     `;
                 });
 
+                // Populate recent files on dashboard
+                let recentFilesContainer = document.getElementById('recent-files-container');
+                if (recentFilesContainer) {
+                    recentFilesContainer.innerHTML = '';
+                    if (files.length === 0) {
+                        recentFilesContainer.innerHTML = '<div class="text-center text-gray-500 text-sm py-4">No recent files</div>';
+                    } else {
+                        const recentFiles = files.slice(0, 4);
+                        recentFiles.forEach(f => {
+                            let icon = 'insert_drive_file';
+                            let color = 'text-gray-400';
+                            if (f.mimeType.includes('pdf')) { icon = 'picture_as_pdf'; color = 'text-red-400'; }
+                            else if (f.mimeType.includes('image')) { icon = 'image'; color = 'text-blue-400'; }
+                            else if (f.mimeType.includes('audio') || f.name.toLowerCase().endsWith('.m4a')) { icon = 'audiotrack'; color = 'text-purple-400'; }
+                            
+                            recentFilesContainer.innerHTML += `
+                                <div class="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
+                                    <div class="flex items-center gap-3 overflow-hidden">
+                                        <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">
+                                            <span class="material-icons-outlined ${color}">${icon}</span>
+                                        </div>
+                                        <div class="truncate">
+                                            <h4 class="text-sm font-semibold text-white truncate">${f.name}</h4>
+                                        </div>
+                                    </div>
+                                    <span class="material-icons-outlined text-gray-500 hover:text-white">open_in_new</span>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+
             } catch(e) {
                 console.error('Error loading files:', e);
+            }
+        }
+
+        async function uploadFileToDrive(event) {
+            const files = event.target.files;
+            if(!files || files.length === 0 || !gapi.client.getToken()) return;
+            
+            try {
+                // Get folder ID or create it
+                let response = await gapi.client.drive.files.list({
+                    q: "name='Scholar Space' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                    spaces: 'drive',
+                });
+                
+                let folderId;
+                if(response.result.files.length === 0) {
+                    const folderMeta = {
+                        name: 'Scholar Space',
+                        mimeType: 'application/vnd.google-apps.folder'
+                    };
+                    const res = await gapi.client.drive.files.create({
+                        resource: folderMeta,
+                        fields: 'id'
+                    });
+                    folderId = res.result.id;
+                } else {
+                    folderId = response.result.files[0].id;
+                }
+                
+                for(let file of files) {
+                    const metadata = {
+                        name: file.name,
+                        parents: [folderId]
+                    };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', file);
+                    
+                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: new Headers({ 'Authorization': 'Bearer ' + gapi.client.getToken().access_token }),
+                        body: form,
+                    });
+                }
+                loadLibraryFiles();
+            } catch(e) {
+                console.error("Error uploading", e);
+                alert("Error uploading files.");
+            }
+        }
+        
+        async function deleteLibraryFile(fileId) {
+            if(!confirm("Delete this file?")) return;
+            try {
+                await gapi.client.drive.files.delete({ fileId: fileId });
+                loadLibraryFiles();
+            } catch(e) {
+                console.error("Error deleting", e);
             }
         }
 
@@ -1285,6 +1655,7 @@
             updateDashboardMetrics();
             updateTimerDisplay(); // init SVG display
             renderCalendar();
+            renderCalendarEvents();
         };
         
     </script>
