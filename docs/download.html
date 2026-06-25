@@ -139,6 +139,18 @@
             box-shadow: 0 6px 20px rgba(34, 211, 238, 0.4);
         }
 
+        .btn-secondary {
+            background-color: rgba(99, 102, 241, 0.2);
+            color: #818CF8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(99, 102, 241, 0.3);
+            color: #A5B4FC;
+            transform: translateY(-2px);
+        }
+
         .btn-github {
             background-color: transparent;
             color: var(--text-main);
@@ -281,12 +293,22 @@
         
         <!-- Download Button -->
         <a href="https://github.com/kushagarwal2580/Scholar-Space/releases/latest" id="download-btn" class="btn btn-download">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
             Download APK
+        </a>
+        
+        <!-- Go to Web Button -->
+        <a href="index.html" class="btn btn-secondary" style="margin-bottom: 8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            Open Web Version
         </a>
         <span class="version-text" id="version-text">Checking latest version...</span>
     </div>
