@@ -373,8 +373,8 @@
                         <button onclick="document.getElementById('library-file-input').click()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 hover:bg-indigo-700 font-medium shadow-sm transition-colors backdrop-blur-md">
                             <span class="material-icons-outlined">add</span> Upload
                         </button>
-                        <button onclick="openVoicePopup()" class="px-4 py-2 bg-rose-600/80 border border-rose-500/50 text-white rounded-lg flex items-center gap-2 hover:bg-rose-600 font-medium transition-colors backdrop-blur-md">
-                            <span class="material-icons-outlined">mic</span> Record Voice
+                        <button onclick="createNewFolder()" class="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg flex items-center gap-2 hover:bg-white/10 font-medium transition-colors backdrop-blur-md">
+                            <span class="material-icons-outlined">create_new_folder</span> New Folder
                         </button>
                         <button class="px-4 py-2 bg-white/5 border border-white/10 text-red-400 rounded-lg flex items-center gap-2 hover:bg-red-500/20 font-medium transition-colors backdrop-blur-md" onclick="deleteSelectedLibraryFiles()">
                             <span class="material-icons-outlined">delete</span> Delete Selected
@@ -393,24 +393,9 @@
 
             <!-- Calendar Tab -->
             <div id="tab-calendar" class="tab-content max-w-4xl mx-auto py-6 space-y-8">
-                <!-- Calendar View -->
-                <div>
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Calendar</h3>
-                    <div class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-white" id="calendar-month-year">...</h2>
-                            <div class="flex gap-2">
-                                <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-lg bg-white/5 text-white flex items-center justify-center hover:bg-white/10"><span class="material-icons-outlined">chevron_left</span></button>
-                                <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-lg bg-white/5 text-white flex items-center justify-center hover:bg-white/10"><span class="material-icons-outlined">chevron_right</span></button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-7 gap-2 text-center text-sm mb-2">
-                            <div class="text-gray-500 font-medium">Sun</div><div class="text-gray-500 font-medium">Mon</div><div class="text-gray-500 font-medium">Tue</div><div class="text-gray-500 font-medium">Wed</div><div class="text-gray-500 font-medium">Thu</div><div class="text-gray-500 font-medium">Fri</div><div class="text-gray-500 font-medium">Sat</div>
-                        </div>
-                        <div class="grid grid-cols-7 gap-2 text-center text-sm text-gray-300" id="calendar-days-grid">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
+                
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-2xl font-bold text-white">Calendar & Schedule</h2>
                 </div>
 
                 <!-- Reminders -->
@@ -485,7 +470,7 @@
                             <button onclick="createNewNote()" class="flex-1 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-indigo-500/30 transition-colors shadow-sm">
                                 <span class="material-icons-outlined">add</span> Note
                             </button>
-                            <button onclick="alert('Voice recording will be available soon in the web app. Use the Android app to record voice notes.')" class="px-4 py-3 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center hover:bg-purple-500/30 transition-colors shadow-sm" title="Record Voice Note">
+                            <button onclick="openVoicePopup()" class="px-4 py-3 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center hover:bg-purple-500/30 transition-colors shadow-sm" title="Record Voice Note">
                                 <span class="material-icons-outlined">mic</span>
                             </button>
                         </div>
@@ -1228,6 +1213,47 @@
             }
         }
 
+        async function createNewFolder() {
+            if (!gapi.client.getToken()) {
+                alert("Please connect to Google Drive first.");
+                return;
+            }
+            const folderName = prompt("Enter folder name:");
+            if (!folderName || folderName.trim() === "") return;
+            
+            try {
+                // Find Scholar Space folder
+                let response = await gapi.client.drive.files.list({
+                    q: "name='Scholar Space' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                    spaces: 'drive',
+                });
+                let scholarFolderId;
+                if(response.result.files.length === 0) {
+                    const res = await gapi.client.drive.files.create({
+                        resource: { name: 'Scholar Space', mimeType: 'application/vnd.google-apps.folder' },
+                        fields: 'id'
+                    });
+                    scholarFolderId = res.result.id;
+                } else {
+                    scholarFolderId = response.result.files[0].id;
+                }
+                
+                // Create new folder inside Scholar Space
+                await gapi.client.drive.files.create({
+                    resource: { 
+                        name: folderName.trim(), 
+                        mimeType: 'application/vnd.google-apps.folder',
+                        parents: [scholarFolderId]
+                    },
+                    fields: 'id'
+                });
+                loadLibraryFiles();
+            } catch (e) {
+                console.error("Failed to create folder", e);
+                alert("Failed to create folder.");
+            }
+        }
+
         async function deleteSelectedLibraryFiles() {
             if (selectedLibraryFiles.size === 0) {
                 alert("No files selected.");
@@ -1297,7 +1323,7 @@
 
                 // Load all files inside Scholar Space folder (excluding App Data folder itself)
                 response = await gapi.client.drive.files.list({
-                    q: `'${scholarFolderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
+                    q: `'${scholarFolderId}' in parents and name != 'App Data' and trashed=false`,
                     spaces: 'drive',
                     fields: 'files(id, name, mimeType)'
                 });
@@ -1316,7 +1342,13 @@
                 files.forEach(f => {
                     let icon = 'insert_drive_file';
                     let color = 'text-gray-400';
-                    if (f.mimeType.includes('pdf')) { icon = 'picture_as_pdf'; color = 'text-red-400'; }
+                    let link = `https://drive.google.com/file/d/${f.id}/view`;
+                    
+                    if (f.mimeType === 'application/vnd.google-apps.folder') {
+                        icon = 'folder';
+                        color = 'text-yellow-400';
+                        link = `https://drive.google.com/drive/folders/${f.id}`;
+                    } else if (f.mimeType.includes('pdf')) { icon = 'picture_as_pdf'; color = 'text-red-400'; }
                     else if (f.mimeType.includes('image')) { icon = 'image'; color = 'text-blue-400'; }
                     else if (f.mimeType.includes('audio') || f.name.toLowerCase().endsWith('.m4a')) { icon = 'audiotrack'; color = 'text-purple-400'; }
                     
@@ -1333,10 +1365,10 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex-1 flex items-center justify-center p-4" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
+                            <div class="flex-1 flex items-center justify-center p-4" onclick="window.open('${link}', '_blank')">
                                 <span class="material-icons-outlined ${color}" style="font-size: 48px;">${icon}</span>
                             </div>
-                            <div class="mt-4 shrink-0" onclick="window.open('https://drive.google.com/file/d/${f.id}/view', '_blank')">
+                            <div class="mt-4 shrink-0" onclick="window.open('${link}', '_blank')">
                                 <p class="font-medium text-white truncate text-sm">${f.name}</p>
                                 <p class="text-xs text-gray-400 mt-1">Synced</p>
                             </div>
