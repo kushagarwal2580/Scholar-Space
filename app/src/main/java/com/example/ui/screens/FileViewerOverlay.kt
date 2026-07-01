@@ -31,6 +31,10 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.ui.input.pointer.pointerInput
@@ -42,6 +46,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.border
 import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun FileViewerOverlay(
@@ -787,58 +793,50 @@ private fun PdfViewer(
     }
     
     if (pageCount > 0) {
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val scrollState = androidx.compose.foundation.rememberScrollState()
         val coroutineScope = rememberCoroutineScope()
-        var isZoomed by remember { mutableStateOf(false) }
+        var scale by remember { mutableStateOf(1f) }
         
         val centerVisiblePage by remember {
             derivedStateOf {
-                val layoutInfo = listState.layoutInfo
-                val center = layoutInfo.viewportEndOffset / 2
-                val itemInfo = layoutInfo.visibleItemsInfo.minByOrNull { kotlin.math.abs((it.offset + it.size / 2) - center) }
-                itemInfo?.index?.coerceIn(0, pageCount - 1) ?: 0
+                val totalHeight = scrollState.maxValue + scrollState.viewportSize
+                if (totalHeight <= 0 || pageCount <= 1) 0
+                else {
+                    val pageHeight = totalHeight / pageCount
+                    val centerScroll = scrollState.value + (scrollState.viewportSize / 2)
+                    (centerScroll / pageHeight).coerceIn(0, pageCount - 1)
+                }
             }
         }
         
         val smoothScrollPercent by remember {
             derivedStateOf {
-                val layoutInfo = listState.layoutInfo
-                val visibleItems = layoutInfo.visibleItemsInfo
-                if (visibleItems.isEmpty() || pageCount <= 1) return@derivedStateOf 0f
-                
-                val firstVisible = visibleItems.first()
-                val index = firstVisible.index
-                val fraction = if (firstVisible.size > 0) {
-                    (-firstVisible.offset.toFloat() / firstVisible.size.toFloat()).coerceIn(0f, 1f)
-                } else 0f
-                
-                val exact = (index + fraction).coerceIn(0f, pageCount - 1f)
-                exact / (pageCount - 1).toFloat()
+                if (scrollState.maxValue <= 0) 0f
+                else (scrollState.value.toFloat() / scrollState.maxValue.toFloat()).coerceIn(0f, 1f)
             }
         }
         
         Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-            ZoomableContent(
-                modifier = Modifier.fillMaxSize(),
-                allowOneFingerPan = true,
-                onScaleChange = { scale -> isZoomed = scale > 1f },
-                onTap = onToggleControls
-            ) {
-                androidx.compose.foundation.lazy.LazyColumn(
-                    state = listState,
-                    userScrollEnabled = !isZoomed,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(top = topPadding, bottom = bottomPadding),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+            Box(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+                ZoomableContent(
+                    modifier = Modifier.fillMaxWidth(),
+                    allowOneFingerPan = true,
+                    onScaleChange = { newScale -> scale = newScale },
+                    onTap = { onToggleControls() }
                 ) {
-                    items(pageCount) { index ->
-                        PdfPage(
-                            pdfRenderer = pdfRenderer,
-                            pageIndex = index
-                        )
-                        if (index < pageCount - 1) {
-                            Spacer(modifier = Modifier.height(8.dp).fillMaxWidth().background(Color.Black))
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = topPadding, bottom = bottomPadding),
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        for (index in 0 until pageCount) {
+                            PdfPage(
+                                pdfRenderer = pdfRenderer,
+                                pageIndex = index
+                            )
+                            if (index < pageCount - 1) {
+                                Spacer(modifier = Modifier.height(8.dp).fillMaxWidth().background(Color.Black))
+                            }
                         }
                     }
                 }
@@ -848,8 +846,8 @@ private fun PdfViewer(
                 androidx.compose.foundation.layout.BoxWithConstraints(
                     modifier = Modifier
                         .padding(
-                            top = topPadding + 48.dp, 
-                            bottom = bottomPadding + 48.dp
+                            top = topPadding, 
+                            bottom = bottomPadding
                         )
                         .align(Alignment.CenterEnd)
                         .width(48.dp)
@@ -862,11 +860,8 @@ private fun PdfViewer(
                                     val percent = if (availableHeightPx > 0) {
                                         ((offset.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
                                     } else 0f
-                                    val exactIndex = percent * (pageCount - 1)
-                                    val targetIndex = exactIndex.toInt().coerceIn(0, pageCount - 1)
-                                    val itemHeight = listState.layoutInfo.visibleItemsInfo.find { it.index == targetIndex }?.size ?: listState.layoutInfo.viewportSize.height
-                                    val offsetPx = ((exactIndex - targetIndex) * itemHeight).toInt()
-                                    coroutineScope.launch { listState.scrollToItem(targetIndex, offsetPx) }
+                                    val targetOffset = (percent * scrollState.maxValue).toInt()
+                                    coroutineScope.launch { scrollState.scrollTo(targetOffset) }
                                 },
                                 onDragEnd = {},
                                 onDragCancel = {},
@@ -876,22 +871,20 @@ private fun PdfViewer(
                                     val percent = if (availableHeightPx > 0) {
                                         ((change.position.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
                                     } else 0f
-                                    val exactIndex = percent * (pageCount - 1)
-                                    val targetIndex = exactIndex.toInt().coerceIn(0, pageCount - 1)
-                                    val itemHeight = listState.layoutInfo.visibleItemsInfo.find { it.index == targetIndex }?.size ?: listState.layoutInfo.viewportSize.height
-                                    val offsetPx = ((exactIndex - targetIndex) * itemHeight).toInt()
-                                    coroutineScope.launch { listState.scrollToItem(targetIndex, offsetPx) }
+                                    val targetOffset = (percent * scrollState.maxValue).toInt()
+                                    coroutineScope.launch { scrollState.scrollTo(targetOffset) }
                                 }
                             )
                         }
                 ) {
                     val percent = smoothScrollPercent
-                    val yOffset = maxHeight * percent - 20.dp
+                    val availableHeight = androidx.compose.ui.unit.max(0.dp, maxHeight - 40.dp)
+                    val yOffset = availableHeight * percent
                     
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = yOffset.coerceIn(0.dp, maxHeight - 40.dp))
+                            .offset(y = yOffset)
                             .size(32.dp, 40.dp)
                             .background(Cyan400, androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
@@ -903,7 +896,7 @@ private fun PdfViewer(
 
             // Floating page number when zoomed
             androidx.compose.animation.AnimatedVisibility(
-                visible = isZoomed && showControls,
+                visible = scale > 1f && showControls,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = topPadding + 16.dp),
@@ -1033,39 +1026,39 @@ fun ZoomableContent(
                 )
             }
             .pointerInput(containerSize, allowOneFingerPan) {
-                detectTransformGestures(
-                    panZoomLock = true,
-                    onGesture = { centroid, pan, zoom, rotation ->
-                        val newScale = (scale.value * zoom).coerceIn(1f, 5f)
-                        coroutineScope.launch {
-                            if (scale.value != newScale) {
-                                scale.snapTo(newScale)
-                                onScaleChange?.invoke(newScale)
-                            }
-                            if (newScale > 1f) {
-                                val maxX = (containerSize.width * (newScale - 1)) / 2f
-                                val maxY = (containerSize.height * (newScale - 1)) / 2f
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        
+                        val isMultiTouch = event.changes.count { it.pressed } > 1
+                        
+                        if (isMultiTouch || (scale.value > 1f && allowOneFingerPan)) {
+                            if (zoomChange != 1f || panChange != androidx.compose.ui.geometry.Offset.Zero) {
+                                val newScale = (scale.value * zoomChange).coerceIn(1f, 5f)
+                                coroutineScope.launch {
+                                    if (scale.value != newScale) {
+                                        scale.snapTo(newScale)
+                                        onScaleChange?.invoke(newScale)
+                                    }
+                                    if (newScale > 1f) {
+                                        val maxX = (containerSize.width * (newScale - 1)) / 2f
+                                        val maxY = (containerSize.height * (newScale - 1)) / 2f
+                                        
+                                        offsetX.snapTo((offsetX.value + panChange.x).coerceIn(-maxX, maxX))
+                                        offsetY.snapTo((offsetY.value + panChange.y).coerceIn(-maxY, maxY))
+                                    } else {
+                                        offsetX.snapTo(0f)
+                                        offsetY.snapTo(0f)
+                                    }
+                                }
                                 
-                                offsetX.snapTo((offsetX.value + pan.x * scale.value).coerceIn(-maxX, maxX))
-                                offsetY.snapTo((offsetY.value + pan.y * scale.value).coerceIn(-maxY, maxY))
-                            } else {
-                                offsetX.snapTo(0f)
-                                offsetY.snapTo(0f)
-                            }
-                        }
-                    }
-                )
-            }
-            .pointerInput(containerSize, allowOneFingerPan) {
-                if (allowOneFingerPan) {
-                    detectDragGestures { change, dragAmount ->
-                        if (scale.value > 1f) {
-                            change.consume()
-                            val maxX = (containerSize.width * (scale.value - 1)) / 2f
-                            val maxY = (containerSize.height * (scale.value - 1)) / 2f
-                            coroutineScope.launch {
-                                offsetX.snapTo((offsetX.value + dragAmount.x * scale.value).coerceIn(-maxX, maxX))
-                                offsetY.snapTo((offsetY.value + dragAmount.y * scale.value).coerceIn(-maxY, maxY))
+                                event.changes.forEach {
+                                    if (it.positionChanged()) {
+                                        it.consume()
+                                    }
+                                }
                             }
                         }
                     }

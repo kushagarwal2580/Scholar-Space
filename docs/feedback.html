@@ -23,16 +23,14 @@
 
         body {
             margin: 0;
-            padding: 0;
+            padding: 40px 0;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
+            box-sizing: border-box;
             background-image: 
                 radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
                 radial-gradient(circle at 10% 20%, rgba(217, 70, 239, 0.08) 0%, transparent 55%),
@@ -64,7 +62,7 @@
         .container {
             max-width: 900px;
             width: 90%;
-            margin: 40px auto;
+            margin: 0 auto;
             padding: 40px 32px;
             background: var(--card-bg);
             border-radius: 28px;

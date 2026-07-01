@@ -1795,7 +1795,12 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         Toast.makeText(context, "Downloading file to save...", Toast.LENGTH_SHORT).show()
                     }
                     driveViewModel.downloadFileFromDrive(context, this@LibraryViewModel, item.driveFileId, item.title, item.id) {
-                        val updatedItem = _allFiles.value.find { it.id == item.id }
+                        val fromFiles = _allFiles.value.find { it.id == item.id }
+                        val fromVoiceNotes = _voiceNotes.value.find { it.id == item.id }
+                        val updatedItem = fromFiles ?: fromVoiceNotes?.let { vn ->
+                            if (vn.uriString.isNotEmpty()) item.copy(uri = android.net.Uri.parse(vn.uriString)) else null
+                        }
+                        
                         if (updatedItem?.uri != null) {
                             saveToDevice(context, updatedItem, driveViewModel)
                         } else {
@@ -1909,7 +1914,12 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         } else if (item.driveFileId != null && driveViewModel != null) {
             Toast.makeText(context, "Downloading file to share...", Toast.LENGTH_SHORT).show()
             driveViewModel.downloadFileFromDrive(context, this, item.driveFileId, item.title, item.id) {
-                val updatedItem = _allFiles.value.find { it.id == item.id }
+                val fromFiles = _allFiles.value.find { it.id == item.id }
+                val fromVoiceNotes = _voiceNotes.value.find { it.id == item.id }
+                val updatedItem = fromFiles ?: fromVoiceNotes?.let { vn ->
+                    if (vn.uriString.isNotEmpty()) item.copy(uri = android.net.Uri.parse(vn.uriString)) else null
+                }
+                
                 if (updatedItem?.uri != null) {
                     shareFile(context, updatedItem, driveViewModel)
                 } else {
@@ -1958,9 +1968,14 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             android.widget.Toast.makeText(context, "Downloading from Drive...", android.widget.Toast.LENGTH_SHORT).show()
             driveViewModel.downloadFileFromDrive(context, this, item.driveFileId, item.title, item.id) { success ->
                 if (success) {
-                    val updated = _allFiles.value.find { it.id == item.id }
-                    if (updated != null) {
-                        _viewingItem.value = updated
+                    val fromFiles = _allFiles.value.find { it.id == item.id }
+                    val fromVoiceNotes = _voiceNotes.value.find { it.id == item.id }
+                    val updatedItem = fromFiles ?: fromVoiceNotes?.let { vn ->
+                        if (vn.uriString.isNotEmpty()) item.copy(uri = android.net.Uri.parse(vn.uriString)) else null
+                    }
+                    
+                    if (updatedItem != null) {
+                        _viewingItem.value = updatedItem
                     } else {
                         android.widget.Toast.makeText(context, "Failed to open file", android.widget.Toast.LENGTH_SHORT).show()
                     }
