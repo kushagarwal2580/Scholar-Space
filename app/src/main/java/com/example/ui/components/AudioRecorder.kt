@@ -37,8 +37,13 @@ class AudioRecorder(private val context: Context) {
 
     fun stopRecording() {
         recorder?.apply {
-            stop()
-            release()
+            try {
+                stop()
+            } catch (e: Exception) {
+                Log.e("AudioRecorder", "stopRecording failed (likely stopped too quickly)", e)
+            } finally {
+                release()
+            }
         }
         recorder = null
     }

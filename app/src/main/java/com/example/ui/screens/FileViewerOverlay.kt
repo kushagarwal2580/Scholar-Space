@@ -791,32 +791,36 @@ private fun PdfViewer(
         val coroutineScope = rememberCoroutineScope()
         var isZoomed by remember { mutableStateOf(false) }
         
-        val isCenterAnExtraCanvas by remember {
-            derivedStateOf {
-                val layoutInfo = listState.layoutInfo
-                val center = layoutInfo.viewportEndOffset / 2
-                val itemInfo = layoutInfo.visibleItemsInfo.minByOrNull { kotlin.math.abs((it.offset + it.size / 2) - center) }
-                val rawIndex = itemInfo?.index ?: 0
-                pageCount > 1 && (rawIndex == 0 || rawIndex == pageCount + 1)
-            }
-        }
-
         val centerVisiblePage by remember {
             derivedStateOf {
                 val layoutInfo = listState.layoutInfo
                 val center = layoutInfo.viewportEndOffset / 2
                 val itemInfo = layoutInfo.visibleItemsInfo.minByOrNull { kotlin.math.abs((it.offset + it.size / 2) - center) }
-                val rawIndex = itemInfo?.index ?: 0
-                if (pageCount > 1) {
-                    (rawIndex - 1).coerceIn(0, pageCount - 1)
-                } else rawIndex
+                itemInfo?.index?.coerceIn(0, pageCount - 1) ?: 0
+            }
+        }
+        
+        val smoothScrollPercent by remember {
+            derivedStateOf {
+                val layoutInfo = listState.layoutInfo
+                val visibleItems = layoutInfo.visibleItemsInfo
+                if (visibleItems.isEmpty() || pageCount <= 1) return@derivedStateOf 0f
+                
+                val firstVisible = visibleItems.first()
+                val index = firstVisible.index
+                val fraction = if (firstVisible.size > 0) {
+                    (-firstVisible.offset.toFloat() / firstVisible.size.toFloat()).coerceIn(0f, 1f)
+                } else 0f
+                
+                val exact = (index + fraction).coerceIn(0f, pageCount - 1f)
+                exact / (pageCount - 1).toFloat()
             }
         }
         
         Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
             ZoomableContent(
                 modifier = Modifier.fillMaxSize(),
-                allowOneFingerPan = false, // Let LazyColumn handle 1-finger vertical scroll
+                allowOneFingerPan = true,
                 onScaleChange = { scale -> isZoomed = scale > 1f },
                 onTap = onToggleControls
             ) {
@@ -828,40 +832,6 @@ private fun PdfViewer(
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (pageCount > 1) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
-                                    .height(180.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp)
-                                        .height(180.dp)
-                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-                                        .background(Color.Gray)
-                                        .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { onToggleControls() },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(itemTitle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        val formattedSize = itemFileSize?.let { bytes ->
-                                            if (bytes < 1024) "$bytes B" else if (bytes < 1024 * 1024) "${bytes / 1024} KB" else String.format(java.util.Locale.US, "%.1f MB", bytes.toFloat() / (1024 * 1024))
-                                        } ?: ""
-                                        Text("$pageCount Pages" + if (formattedSize.isNotEmpty()) " • $formattedSize" else "", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
                     items(pageCount) { index ->
                         PdfPage(
                             pdfRenderer = pdfRenderer,
@@ -871,69 +841,51 @@ private fun PdfViewer(
                             Spacer(modifier = Modifier.height(8.dp).fillMaxWidth().background(Color.Black))
                         }
                     }
-                    if (pageCount > 1) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
-                                    .height(180.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp)
-                                        .height(180.dp)
-                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-                                        .background(Color.Gray)
-                                        .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { onToggleControls() },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(itemTitle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        val formattedSize = itemFileSize?.let { bytes ->
-                                            if (bytes < 1024) "$bytes B" else if (bytes < 1024 * 1024) "${bytes / 1024} KB" else String.format(java.util.Locale.US, "%.1f MB", bytes.toFloat() / (1024 * 1024))
-                                        } ?: ""
-                                        Text("$pageCount Pages" + if (formattedSize.isNotEmpty()) " • $formattedSize" else "", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
             
             if (pageCount > 1 && showControls) {
                 androidx.compose.foundation.layout.BoxWithConstraints(
                     modifier = Modifier
-                        .padding(top = topPadding, bottom = bottomPadding)
+                        .padding(
+                            top = topPadding + 48.dp, 
+                            bottom = bottomPadding + 48.dp
+                        )
                         .align(Alignment.CenterEnd)
                         .width(48.dp)
                         .fillMaxHeight()
                         .pointerInput(pageCount) {
+                            val thumbHalfHeightPx = 20.dp.toPx()
                             detectVerticalDragGestures(
                                 onDragStart = { offset ->
-                                    val percent = (offset.y / size.height.toFloat()).coerceIn(0f, 1f)
-                                    val targetPage = (percent * pageCount).toInt().coerceIn(0, pageCount - 1)
-                                    coroutineScope.launch { listState.scrollToItem(targetPage) }
+                                    val availableHeightPx = size.height - 2 * thumbHalfHeightPx
+                                    val percent = if (availableHeightPx > 0) {
+                                        ((offset.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
+                                    } else 0f
+                                    val exactIndex = percent * (pageCount - 1)
+                                    val targetIndex = exactIndex.toInt().coerceIn(0, pageCount - 1)
+                                    val itemHeight = listState.layoutInfo.visibleItemsInfo.find { it.index == targetIndex }?.size ?: listState.layoutInfo.viewportSize.height
+                                    val offsetPx = ((exactIndex - targetIndex) * itemHeight).toInt()
+                                    coroutineScope.launch { listState.scrollToItem(targetIndex, offsetPx) }
                                 },
                                 onDragEnd = {},
                                 onDragCancel = {},
                                 onVerticalDrag = { change, _ ->
                                     change.consume()
-                                    val percent = (change.position.y / size.height.toFloat()).coerceIn(0f, 1f)
-                                    val targetPage = (percent * pageCount).toInt().coerceIn(0, pageCount - 1)
-                                    coroutineScope.launch { listState.scrollToItem(targetPage) }
+                                    val availableHeightPx = size.height - 2 * thumbHalfHeightPx
+                                    val percent = if (availableHeightPx > 0) {
+                                        ((change.position.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
+                                    } else 0f
+                                    val exactIndex = percent * (pageCount - 1)
+                                    val targetIndex = exactIndex.toInt().coerceIn(0, pageCount - 1)
+                                    val itemHeight = listState.layoutInfo.visibleItemsInfo.find { it.index == targetIndex }?.size ?: listState.layoutInfo.viewportSize.height
+                                    val offsetPx = ((exactIndex - targetIndex) * itemHeight).toInt()
+                                    coroutineScope.launch { listState.scrollToItem(targetIndex, offsetPx) }
                                 }
                             )
                         }
                 ) {
-                    val percent = if (pageCount > 1) centerVisiblePage.toFloat() / (pageCount - 1) else 0f
+                    val percent = smoothScrollPercent
                     val yOffset = maxHeight * percent - 20.dp
                     
                     Box(
@@ -951,7 +903,7 @@ private fun PdfViewer(
 
             // Floating page number when zoomed
             androidx.compose.animation.AnimatedVisibility(
-                visible = isZoomed && showControls && !isCenterAnExtraCanvas,
+                visible = isZoomed && showControls,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = topPadding + 16.dp),
@@ -1090,15 +1042,12 @@ fun ZoomableContent(
                                 scale.snapTo(newScale)
                                 onScaleChange?.invoke(newScale)
                             }
-                            // Allows pan if zoomed in, OR if allowOneFingerPan is true (but panning only makes sense when zoomed in)
                             if (newScale > 1f) {
                                 val maxX = (containerSize.width * (newScale - 1)) / 2f
                                 val maxY = (containerSize.height * (newScale - 1)) / 2f
                                 
-                                val activePan = if (allowOneFingerPan || zoom != 1f) pan else androidx.compose.ui.geometry.Offset.Zero
-                                
-                                offsetX.snapTo((offsetX.value + activePan.x * scale.value).coerceIn(-maxX, maxX))
-                                offsetY.snapTo((offsetY.value + activePan.y * scale.value).coerceIn(-maxY, maxY))
+                                offsetX.snapTo((offsetX.value + pan.x * scale.value).coerceIn(-maxX, maxX))
+                                offsetY.snapTo((offsetY.value + pan.y * scale.value).coerceIn(-maxY, maxY))
                             } else {
                                 offsetX.snapTo(0f)
                                 offsetY.snapTo(0f)
@@ -1106,6 +1055,21 @@ fun ZoomableContent(
                         }
                     }
                 )
+            }
+            .pointerInput(containerSize, allowOneFingerPan) {
+                if (allowOneFingerPan) {
+                    detectDragGestures { change, dragAmount ->
+                        if (scale.value > 1f) {
+                            change.consume()
+                            val maxX = (containerSize.width * (scale.value - 1)) / 2f
+                            val maxY = (containerSize.height * (scale.value - 1)) / 2f
+                            coroutineScope.launch {
+                                offsetX.snapTo((offsetX.value + dragAmount.x * scale.value).coerceIn(-maxX, maxX))
+                                offsetY.snapTo((offsetY.value + dragAmount.y * scale.value).coerceIn(-maxY, maxY))
+                            }
+                        }
+                    }
+                }
             },
         contentAlignment = Alignment.Center
     ) {
@@ -1207,7 +1171,7 @@ private fun DocumentViewer(
         } else {
             androidx.compose.foundation.lazy.LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = topPadding + 24.dp, bottom = bottomPadding + 24.dp, start = 24.dp, end = 24.dp)
+                contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding, start = 24.dp, end = 24.dp)
             ) {
                 item {
                     androidx.compose.foundation.text.selection.SelectionContainer {

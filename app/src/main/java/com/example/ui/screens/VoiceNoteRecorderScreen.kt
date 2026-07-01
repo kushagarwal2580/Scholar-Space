@@ -20,6 +20,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun VoiceNoteRecorderScreen(
@@ -29,6 +30,7 @@ fun VoiceNoteRecorderScreen(
     val context = LocalContext.current
     val audioRecorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
+    var hasRecorded by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
     var titleError by remember { mutableStateOf<String?>(null) }
     val outputFile = remember { File(context.cacheDir, "voice_note_${System.currentTimeMillis()}.m4a") }
@@ -40,6 +42,8 @@ fun VoiceNoteRecorderScreen(
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
+
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
@@ -107,57 +111,85 @@ fun VoiceNoteRecorderScreen(
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                     
-                    if (isRecording || recordingDuration > 0) {
-                        Text(
-                            text = String.format("%02d:%02d", (recordingDuration / 1000) / 60, (recordingDuration / 1000) % 60),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Light,
-                            color = if (isRecording) MaterialTheme.colorScheme.error else Cyan400,
-                            modifier = Modifier.padding(bottom = 24.dp)
-                        )
-                    }
-                    
                     Box(
                         modifier = Modifier
-                            .size(88.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(if (isRecording) MaterialTheme.colorScheme.error.copy(alpha = 0.2f) else Cyan400.copy(alpha = 0.2f))
-                            .clickable {
-                                if (isRecording) {
-                                    audioRecorder.stopRecording()
-                                    isRecording = false
-                                } else {
-                                    if (hasPermission) {
-                                        recordingDuration = 0L
-                                        if (audioRecorder.startRecording(outputFile)) {
-                                            isRecording = true
-                                        }
-                                    } else {
-                                        permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                    }
-                                }
-                            },
+                            .fillMaxWidth()
+                            .height(180.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(if (isRecording) androidx.compose.foundation.shape.RoundedCornerShape(16.dp) else androidx.compose.foundation.shape.CircleShape)
-                                .background(if (isRecording) MaterialTheme.colorScheme.error else Cyan400),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (!isRecording) {
-                                Icon(
-                                    imageVector = Icons.Default.Mic,
-                                    contentDescription = "Record",
-                                    tint = androidx.compose.ui.graphics.Color.Black,
-                                    modifier = Modifier.size(32.dp)
+                        if (!hasRecorded || isRecording) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(88.dp)
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
+                                        .background(if (isRecording) MaterialTheme.colorScheme.error.copy(alpha = 0.2f) else Cyan400.copy(alpha = 0.2f))
+                                        .clickable {
+                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                            if (isRecording) {
+                                                audioRecorder.stopRecording()
+                                                isRecording = false
+                                                if (recordingDuration < 1000L) {
+                                                    hasRecorded = false
+                                                    android.widget.Toast.makeText(context, "Recording too short", android.widget.Toast.LENGTH_SHORT).show()
+                                                    recordingDuration = 0L
+                                                } else {
+                                                    hasRecorded = true
+                                                }
+                                            } else {
+                                                if (hasPermission) {
+                                                    recordingDuration = 0L
+                                                    if (audioRecorder.startRecording(outputFile)) {
+                                                        isRecording = true
+                                                    }
+                                                } else {
+                                                    permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                }
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(if (isRecording) androidx.compose.foundation.shape.RoundedCornerShape(16.dp) else androidx.compose.foundation.shape.CircleShape)
+                                            .background(if (isRecording) MaterialTheme.colorScheme.error else Cyan400),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!isRecording) {
+                                            Icon(
+                                                imageVector = Icons.Default.Mic,
+                                                contentDescription = "Record",
+                                                tint = androidx.compose.ui.graphics.Color.Black,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = String.format("%02d:%02d", (recordingDuration / 1000) / 60, (recordingDuration / 1000) % 60),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Light,
+                                    color = if (isRecording) MaterialTheme.colorScheme.error else Cyan400,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                Text(
+                                    text = if (isRecording) "Recording... Tap to stop" else "Tap to start recording", 
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
+                        } else {
+                            Text(
+                                text = "Recording completed.\nReady to save.", 
+                                color = Cyan400, 
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(text = if (isRecording) "Recording... Tap to stop" else "Tap to start recording", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     Row(

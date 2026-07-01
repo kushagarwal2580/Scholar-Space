@@ -60,6 +60,7 @@ fun DashboardScreen(
     onOpenItem: (LibraryItem) -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val fallbackFlow = remember { kotlinx.coroutines.flow.MutableStateFlow<AuthState>(AuthState.Idle) }
     val authState by (authViewModel?.uiState ?: fallbackFlow).collectAsState()
     
@@ -238,6 +239,10 @@ fun DashboardScreen(
     BackHandler(enabled = searchActive) {
         libraryViewModel.isSearchActive.value = false
         searchQuery = ""
+    }
+
+    BackHandler(enabled = isFabExpanded) {
+        libraryViewModel.isFabExpanded.value = false
     }
 
     val imeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
@@ -429,6 +434,7 @@ fun DashboardScreen(
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(8.dp))
                                             .clickable {
+                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 searchQuery = "$tag "
                                             }
                                             .padding(horizontal = 8.dp, vertical = 8.dp),
@@ -646,6 +652,7 @@ fun DashboardScreen(
                         .background(if (authState is AuthState.Success || activeAccount != null) Cyan400 else Slate800)
                         .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
                         .clickable { 
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             onTabSelected("settings")
                         },
                     contentAlignment = Alignment.Center
@@ -696,7 +703,10 @@ fun DashboardScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .glassMorphic(CircleShape)
-                    .clickable { libraryViewModel.isSearchActive.value = true }
+                    .clickable { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        libraryViewModel.isSearchActive.value = true 
+                    }
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -1955,12 +1965,16 @@ fun FrostedCard(
     onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val cardModifier = if (onClick != null || onLongClick != null) {
         modifier
             .glassMorphic(RoundedCornerShape(24.dp))
             .combinedClickable(
                 onClick = { onClick?.invoke() },
-                onLongClick = { onLongClick?.invoke() }
+                onLongClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onLongClick?.invoke() 
+                }
             )
     } else {
         modifier
@@ -1974,6 +1988,7 @@ fun FrostedCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileItemRow(
     item: LibraryItem,
@@ -1984,6 +1999,7 @@ fun FileItemRow(
 ) {
     var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
     var showDeleteDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     if (showDeleteDialog) {
         com.example.ui.components.ConfirmationDialog(
@@ -1998,7 +2014,13 @@ fun FileItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .glassMorphic(RoundedCornerShape(16.dp))
-            .clickable { onOpen() }
+            .combinedClickable(
+                onClick = onOpen,
+                onLongClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    expanded = true
+                }
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2070,6 +2092,7 @@ fun BottomNavBar(
     onTabSelected: (String) -> Unit,
     onAddClick: () -> Unit
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val isDark = true
     val bgColor = if (isDark) {
         Color(0xFF0F172A).copy(alpha = 0.35f) // Slate 900 highly translucent
@@ -2117,7 +2140,10 @@ fun BottomNavBar(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(if (isDashboard) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable { onTabSelected("dashboard") },
+                    .clickable { 
+                        if (!isDashboard) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onTabSelected("dashboard") 
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2133,7 +2159,10 @@ fun BottomNavBar(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(if (isLibrary) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable { onTabSelected("library") },
+                    .clickable { 
+                        if (!isLibrary) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onTabSelected("library") 
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2149,7 +2178,10 @@ fun BottomNavBar(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(if (isNotes) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable { onTabSelected("notes") },
+                    .clickable { 
+                        if (!isNotes) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onTabSelected("notes") 
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2165,7 +2197,10 @@ fun BottomNavBar(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(if (isCalendar) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable { onTabSelected("calendar") },
+                    .clickable { 
+                        if (!isCalendar) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onTabSelected("calendar") 
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -2258,6 +2293,7 @@ fun getReminderTimeRemaining(dateMillis: Long, timeStr: String): String {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteItemRow(
     item: NoteItem,
@@ -2266,6 +2302,7 @@ fun NoteItemRow(
 ) {
     var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
     var showDeleteDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     if (showDeleteDialog) {
         com.example.ui.components.ConfirmationDialog(
@@ -2280,7 +2317,13 @@ fun NoteItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .glassMorphic(RoundedCornerShape(16.dp))
-            .clickable { onOpen() }
+            .combinedClickable(
+                onClick = onOpen,
+                onLongClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    expanded = true
+                }
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

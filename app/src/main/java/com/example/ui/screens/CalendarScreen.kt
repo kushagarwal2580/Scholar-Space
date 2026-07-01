@@ -39,6 +39,7 @@ fun CalendarScreen(
     libraryViewModel: LibraryViewModel,
     innerPadding: PaddingValues = PaddingValues(0.dp)
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val timers by libraryViewModel.timers.collectAsState()
     var showAddTimerDialog by remember { mutableStateOf(false) }
     var newTimerTitle by remember { mutableStateOf("") }
@@ -188,7 +189,10 @@ fun CalendarScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "REMINDERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-                    IconButton(onClick = { showAddReminderDialog = true }) {
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showAddReminderDialog = true 
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Reminder", tint = Cyan400)
                     }
                 }
@@ -271,7 +275,10 @@ fun CalendarScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "DAY COUNTERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-                    IconButton(onClick = { showAddCounterDialog = true }) {
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showAddCounterDialog = true 
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Counter", tint = Cyan400)
                     }
                 }
@@ -346,7 +353,10 @@ fun CalendarScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "STOPWATCHES", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-                    IconButton(onClick = { showAddStopwatchDialog = true }) {
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showAddStopwatchDialog = true 
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Stopwatch", tint = Cyan400)
                     }
                 }
@@ -423,7 +433,10 @@ fun CalendarScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "COUNTDOWN TIMERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-                    IconButton(onClick = { showAddTimerDialog = true }) {
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showAddTimerDialog = true 
+                    }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Timer", tint = Cyan400)
                     }
                 }

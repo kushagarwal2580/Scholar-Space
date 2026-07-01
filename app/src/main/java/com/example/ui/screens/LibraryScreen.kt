@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -142,6 +143,10 @@ fun LibraryScreen(
         } else {
             libraryViewModel.navigateUp()
         }
+    }
+
+    androidx.activity.compose.BackHandler(enabled = isFabExpanded) {
+        libraryViewModel.isFabExpanded.value = false
     }
 
     val scannerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -760,6 +765,7 @@ fun LibraryListItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     if (showDeleteDialog) {
         com.example.ui.components.ConfirmationDialog(
@@ -794,7 +800,13 @@ fun LibraryListItem(
             .fillMaxWidth()
             .glassMorphic(RoundedCornerShape(16.dp))
             .let { if (isSelected) it.border(1.dp, Cyan400, RoundedCornerShape(16.dp)).background(Cyan500.copy(alpha = 0.1f), RoundedCornerShape(16.dp)) else it }
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(
+                onClick = onClick, 
+                onLongClick = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onLongClick() 
+                }
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1164,8 +1176,15 @@ fun LibraryHeader(
         }
 
         // Search Bar
+        val searchInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val isSearchPressed by searchInteractionSource.collectIsPressedAsState()
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+        LaunchedEffect(isSearchPressed) {
+            if (isSearchPressed) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        }
         OutlinedTextField(
             value = searchQuery,
+            interactionSource = searchInteractionSource,
             onValueChange = { onSearchQueryChange(it) },
             modifier = Modifier
                 .fillMaxWidth()

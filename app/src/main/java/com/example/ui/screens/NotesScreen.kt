@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -115,12 +116,17 @@ fun NotesScreen(
 
     val openNewNoteDirectly by libraryViewModel.openNewNoteDirectly.collectAsState()
     val openNoteIdDirectly by libraryViewModel.openNoteIdDirectly.collectAsState()
+    val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
     
     androidx.activity.compose.BackHandler(enabled = isSelectionMode) {
         if (isSelectionMode) {
             isSelectionMode = false
             selectedNotes = emptySet()
         }
+    }
+
+    androidx.activity.compose.BackHandler(enabled = isFabExpanded) {
+        libraryViewModel.isFabExpanded.value = false
     }
     
     LaunchedEffect(openNewNoteDirectly) {
@@ -386,7 +392,6 @@ fun NotesScreen(
             }
 
         // Floating Action Button in same position as other tabs
-        val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
         val triggerVoiceRecorder by libraryViewModel.triggerVoiceRecorder.collectAsState()
         var showVoiceRecorder by remember { mutableStateOf(false) }
 
@@ -839,6 +844,7 @@ fun NoteCard(
     val context = LocalContext.current
     var showCardMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val pinnedNote1Id by libraryViewModel.pinnedNote1Id.collectAsState()
     val pinnedNote2Id by libraryViewModel.pinnedNote2Id.collectAsState()
@@ -865,7 +871,10 @@ fun NoteCard(
             .let { if (isSelected) it.border(1.dp, Cyan400, RoundedCornerShape(24.dp)).background(Cyan500.copy(alpha = 0.1f), RoundedCornerShape(24.dp)) else it }
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongClick
+                onLongClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
             )
     ) {
         Column(
@@ -1147,8 +1156,15 @@ fun NotesHeader(
         }
 
         // Search Bar
+        val searchInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val isSearchPressed by searchInteractionSource.collectIsPressedAsState()
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+        LaunchedEffect(isSearchPressed) {
+            if (isSearchPressed) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        }
         OutlinedTextField(
             value = searchQuery,
+            interactionSource = searchInteractionSource,
             onValueChange = { onSearchQueryChange(it) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -1212,6 +1228,7 @@ fun VoiceNoteCard(
     var duration by remember { mutableIntStateOf(0) }
     var currentPosition by remember { mutableIntStateOf(0) }
     var showProgressBar by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     
     val downloadingFiles by driveViewModel.downloadingFiles.collectAsState()
     val isDownloading = downloadingFiles[note.id] != null
@@ -1260,7 +1277,10 @@ fun VoiceNoteCard(
             .let { if (isSelected) it.border(1.dp, Cyan400, RoundedCornerShape(24.dp)).background(Cyan500.copy(alpha = 0.1f), RoundedCornerShape(24.dp)) else it }
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongClick
+                onLongClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
             )
     ) {
         Column(
