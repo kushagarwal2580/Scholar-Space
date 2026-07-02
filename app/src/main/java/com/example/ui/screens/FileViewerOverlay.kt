@@ -1,4 +1,14 @@
 package com.example.ui.screens
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.ui.graphics.graphicsLayer
 
 import android.content.Context
 import android.net.Uri
@@ -793,50 +803,153 @@ private fun PdfViewer(
     }
     
     if (pageCount > 0) {
-        val scrollState = androidx.compose.foundation.rememberScrollState()
         val coroutineScope = rememberCoroutineScope()
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val topPaddingPx = remember(topPadding, density) { with(density) { topPadding.toPx() } }
+        val bottomPaddingPx = remember(bottomPadding, density) { with(density) { bottomPadding.toPx() } }
+        
         var scale by remember { mutableStateOf(1f) }
+        var offsetX by remember { mutableStateOf(0f) }
+        var offsetY by remember { mutableStateOf(topPaddingPx) }
+        
+        var viewportWidth by remember { mutableStateOf(1f) }
+        var viewportHeight by remember { mutableStateOf(1f) }
+        var contentWidth by remember { mutableStateOf(1f) }
+        var contentHeight by remember { mutableStateOf(1f) }
+        
+        LaunchedEffect(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx) {
+            val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+            offsetX = offsetX.coerceIn(bounds.minX, bounds.maxX)
+            offsetY = offsetY.coerceIn(bounds.minY, bounds.maxY)
+        }
+        
+        val scrollStateY = androidx.compose.foundation.gestures.rememberScrollableState { delta ->
+            val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+            val oldOffsetY = offsetY
+            offsetY = (offsetY + delta).coerceIn(bounds.minY, bounds.maxY)
+            offsetY - oldOffsetY
+        }
+        
+        val scrollStateX = androidx.compose.foundation.gestures.rememberScrollableState { delta ->
+            val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+            val oldOffsetX = offsetX
+            offsetX = (offsetX + delta).coerceIn(bounds.minX, bounds.maxX)
+            offsetX - oldOffsetX
+        }
         
         val centerVisiblePage by remember {
             derivedStateOf {
-                val totalHeight = scrollState.maxValue + scrollState.viewportSize
-                if (totalHeight <= 0 || pageCount <= 1) 0
+                if (contentHeight <= 0f || pageCount <= 1 || scale <= 0f) 0
                 else {
-                    val pageHeight = totalHeight / pageCount
-                    val centerScroll = scrollState.value + (scrollState.viewportSize / 2)
-                    (centerScroll / pageHeight).coerceIn(0, pageCount - 1)
+                    val scaledPageHeight = (contentHeight * scale) / pageCount
+                    val centerScroll = (viewportHeight / 2) - offsetY
+                    (centerScroll / scaledPageHeight).toInt().coerceIn(0, pageCount - 1)
                 }
             }
         }
         
-        val smoothScrollPercent by remember {
-            derivedStateOf {
-                if (scrollState.maxValue <= 0) 0f
-                else (scrollState.value.toFloat() / scrollState.maxValue.toFloat()).coerceIn(0f, 1f)
-            }
-        }
-        
-        Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-            Box(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-                ZoomableContent(
-                    modifier = Modifier.fillMaxWidth(),
-                    allowOneFingerPan = true,
-                    onScaleChange = { newScale -> scale = newScale },
-                    onTap = { onToggleControls() }
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = topPadding, bottom = bottomPadding),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        for (index in 0 until pageCount) {
-                            PdfPage(
-                                pdfRenderer = pdfRenderer,
-                                pageIndex = index
-                            )
-                            if (index < pageCount - 1) {
-                                Spacer(modifier = Modifier.height(8.dp).fillMaxWidth().background(Color.Black))
+        androidx.compose.foundation.layout.BoxWithConstraints(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .scrollable(scrollStateY, Orientation.Vertical)
+                .scrollable(scrollStateX, Orientation.Horizontal)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        do {
+                            val event = awaitPointerEvent()
+                            val canceled = event.changes.any { it.isConsumed }
+                            if (!canceled) {
+                                if (event.changes.count { it.pressed } >= 2) {
+                                    val zoomChange = event.calculateZoom()
+                                    val panChange = event.calculatePan()
+                                    val centroid = event.calculateCentroid(useCurrent = false)
+                                    
+                                    val oldScale = scale
+                                    val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                                    
+                                    val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, newScale, topPaddingPx, bottomPaddingPx)
+                                    
+                                    val newOffsetX = centroid.x + (offsetX - centroid.x) * (newScale / oldScale) + panChange.x
+                                    val newOffsetY = centroid.y + (offsetY - centroid.y) * (newScale / oldScale) + panChange.y
+                                    
+                                    scale = newScale
+                                    offsetX = newOffsetX.coerceIn(bounds.minX, bounds.maxX)
+                                    offsetY = newOffsetY.coerceIn(bounds.minY, bounds.maxY)
+                                    
+                                    event.changes.forEach { if (it.positionChanged()) it.consume() }
+                                }
                             }
+                        } while (!canceled && event.changes.any { it.pressed })
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { onToggleControls() },
+                        onDoubleTap = { tapOffset ->
+                            coroutineScope.launch {
+                                val targetScale = if (scale > 1f) 1f else 2.5f
+                                val initialScale = scale
+                                val initialOffsetX = offsetX
+                                val initialOffsetY = offsetY
+                                
+                                val finalBounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, targetScale, topPaddingPx, bottomPaddingPx)
+                                val idealFinalOffsetX = tapOffset.x + (initialOffsetX - tapOffset.x) * (targetScale / initialScale)
+                                val idealFinalOffsetY = tapOffset.y + (initialOffsetY - tapOffset.y) * (targetScale / initialScale)
+                                
+                                val finalOffsetX = idealFinalOffsetX.coerceIn(finalBounds.minX, finalBounds.maxX)
+                                val finalOffsetY = idealFinalOffsetY.coerceIn(finalBounds.minY, finalBounds.maxY)
+                                
+                                val fractionAnim = androidx.compose.animation.core.Animatable(0f)
+                                fractionAnim.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = androidx.compose.animation.core.tween(300)
+                                ) {
+                                    val fraction = this.value
+                                    scale = initialScale + (targetScale - initialScale) * fraction
+                                    offsetX = initialOffsetX + (finalOffsetX - initialOffsetX) * fraction
+                                    offsetY = initialOffsetY + (finalOffsetY - initialOffsetY) * fraction
+                                }
+                            }
+                        }
+                    )
+                }
+        ) {
+            viewportWidth = constraints.maxWidth.toFloat()
+            viewportHeight = constraints.maxHeight.toFloat()
+            val baseWidth = maxWidth
+            
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offsetX
+                    translationY = offsetY
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .wrapContentSize(align = Alignment.TopStart, unbounded = true)
+                        .width(baseWidth)
+                        .onSizeChanged {
+                            contentWidth = it.width.toFloat()
+                            contentHeight = it.height.toFloat()
+                        },
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    for (index in 0 until pageCount) {
+                        PdfPage(
+                            pdfRenderer = pdfRenderer,
+                            pageIndex = index,
+                            scale = 1f,
+                            baseWidth = baseWidth
+                        )
+                        if (index < pageCount - 1) {
+                            Spacer(modifier = Modifier.height(8.dp).fillMaxWidth().background(Color.Black))
                         }
                     }
                 }
@@ -860,8 +973,10 @@ private fun PdfViewer(
                                     val percent = if (availableHeightPx > 0) {
                                         ((offset.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
                                     } else 0f
-                                    val targetOffset = (percent * scrollState.maxValue).toInt()
-                                    coroutineScope.launch { scrollState.scrollTo(targetOffset) }
+                                    val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+                                    val availableScrollRange = bounds.maxY - bounds.minY
+                                    val newOffsetY = bounds.maxY - percent * availableScrollRange
+                                    offsetY = newOffsetY.coerceIn(bounds.minY, bounds.maxY)
                                 },
                                 onDragEnd = {},
                                 onDragCancel = {},
@@ -871,13 +986,17 @@ private fun PdfViewer(
                                     val percent = if (availableHeightPx > 0) {
                                         ((change.position.y - thumbHalfHeightPx) / availableHeightPx).coerceIn(0f, 1f)
                                     } else 0f
-                                    val targetOffset = (percent * scrollState.maxValue).toInt()
-                                    coroutineScope.launch { scrollState.scrollTo(targetOffset) }
+                                    val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+                                    val availableScrollRange = bounds.maxY - bounds.minY
+                                    val newOffsetY = bounds.maxY - percent * availableScrollRange
+                                    offsetY = newOffsetY.coerceIn(bounds.minY, bounds.maxY)
                                 }
                             )
                         }
                 ) {
-                    val percent = smoothScrollPercent
+                    val bounds = calculateZoomBounds(viewportWidth, viewportHeight, contentWidth, contentHeight, scale, topPaddingPx, bottomPaddingPx)
+                    val availableScrollRange = bounds.maxY - bounds.minY
+                    val percent = if (availableScrollRange > 0) (bounds.maxY - offsetY) / availableScrollRange else 0f
                     val availableHeight = androidx.compose.ui.unit.max(0.dp, maxHeight - 40.dp)
                     val yOffset = availableHeight * percent
                     
@@ -919,25 +1038,74 @@ private fun PdfViewer(
     }
 }
 
+private data class ZoomBounds(
+    val minX: Float,
+    val maxX: Float,
+    val minY: Float,
+    val maxY: Float
+)
+
+private fun calculateZoomBounds(
+    viewportWidth: Float,
+    viewportHeight: Float,
+    contentWidth: Float,
+    contentHeight: Float,
+    scale: Float,
+    topPaddingPx: Float,
+    bottomPaddingPx: Float
+): ZoomBounds {
+    val scaledWidth = contentWidth * scale
+    val minOffsetX: Float
+    val maxOffsetX: Float
+    if (scaledWidth < viewportWidth) {
+        val centeredX = (viewportWidth - scaledWidth) / 2f
+        minOffsetX = centeredX
+        maxOffsetX = centeredX
+    } else {
+        minOffsetX = viewportWidth - scaledWidth
+        maxOffsetX = 0f
+    }
+
+    val scaledHeight = contentHeight * scale
+    val availableHeight = viewportHeight - topPaddingPx - bottomPaddingPx
+    
+    val minY: Float
+    val maxY: Float
+    if (scaledHeight < availableHeight) {
+        val centeredY = topPaddingPx + (availableHeight - scaledHeight) / 2f
+        minY = centeredY
+        maxY = centeredY
+    } else {
+        minY = viewportHeight - bottomPaddingPx - scaledHeight
+        maxY = topPaddingPx
+    }
+
+    return ZoomBounds(minOffsetX, maxOffsetX, minY, maxY)
+}
+
 @Composable
 private fun PdfPage(
     pdfRenderer: android.graphics.pdf.PdfRenderer?,
-    pageIndex: Int
+    pageIndex: Int,
+    scale: Float,
+    baseWidth: androidx.compose.ui.unit.Dp
 ) {
     val context = LocalContext.current
     var androidBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var aspectRatio by remember { mutableStateOf(1f) }
     
     LaunchedEffect(pdfRenderer, pageIndex) {
         if (pdfRenderer != null) {
-            androidBitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 var newBitmap: android.graphics.Bitmap? = null
+                var newRatio = 1f
                 synchronized(pdfRenderer) {
                     try {
                         val page = pdfRenderer.openPage(pageIndex)
                         val displayMetrics = context.resources.displayMetrics
                         val width = displayMetrics.widthPixels
-                        val ratio = width.toFloat() / page.width.toFloat()
-                        val height = (page.height * ratio).toInt()
+                        newRatio = width.toFloat() / page.width.toFloat()
+                        val height = (page.height * newRatio).toInt()
                         
                         val b = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
                         b.eraseColor(android.graphics.Color.WHITE)
@@ -947,18 +1115,21 @@ private fun PdfPage(
                         newBitmap = b
                     } catch (e: Exception) { e.printStackTrace() }
                 }
-                newBitmap
+                Pair(newBitmap, newRatio)
+            }
+            androidBitmap = result.first
+            if (result.first != null) {
+                aspectRatio = result.first!!.width.toFloat() / result.first!!.height.toFloat()
             }
         }
     }
     
     if (androidBitmap != null) {
         val imageBitmap = remember(androidBitmap) { androidBitmap!!.asImageBitmap() }
-        val aspectRatio = androidBitmap!!.width.toFloat() / androidBitmap!!.height.toFloat()
         
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(baseWidth * scale)
                 .aspectRatio(aspectRatio)
         ) {
             androidx.compose.foundation.Image(
@@ -969,7 +1140,7 @@ private fun PdfPage(
             )
         }
     } else {
-        Box(modifier = Modifier.fillMaxWidth().height(400.dp).background(Color.Black), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.width(baseWidth * scale).height((baseWidth * scale) * 1.4f).background(Color.Black), contentAlignment = Alignment.Center) {
             androidx.compose.material3.CircularProgressIndicator(color = Cyan400)
         }
     }
@@ -1009,17 +1180,33 @@ fun ZoomableContent(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { currentOnTap?.invoke() },
-                    onDoubleTap = {
+                    onDoubleTap = { tapOffset ->
                         coroutineScope.launch {
                             val targetScale = if (scale.value > 1f) 1f else 2.5f
-                            val targetOffsetX = if (targetScale == 1f) 0f else offsetX.value
-                            val targetOffsetY = if (targetScale == 1f) 0f else offsetY.value
                             
-                            kotlinx.coroutines.joinAll(
-                                launch { scale.animateTo(targetScale) },
-                                launch { offsetX.animateTo(targetOffsetX) },
-                                launch { offsetY.animateTo(targetOffsetY) }
-                            )
+                            if (targetScale == 1f) {
+                                kotlinx.coroutines.joinAll(
+                                    launch { scale.animateTo(1f) },
+                                    launch { offsetX.animateTo(0f) },
+                                    launch { offsetY.animateTo(0f) }
+                                )
+                            } else {
+                                val center = androidx.compose.ui.geometry.Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                val c = tapOffset - center
+                                
+                                val actualZoom = targetScale / scale.value
+                                val targetOffsetX = offsetX.value * actualZoom + c.x * (1 - actualZoom)
+                                val targetOffsetY = offsetY.value * actualZoom + c.y * (1 - actualZoom)
+                                
+                                val maxX = (containerSize.width * (targetScale - 1)) / 2f
+                                val maxY = (containerSize.height * (targetScale - 1)) / 2f
+                                
+                                kotlinx.coroutines.joinAll(
+                                    launch { scale.animateTo(targetScale) },
+                                    launch { offsetX.animateTo(targetOffsetX.coerceIn(-maxX, maxX)) },
+                                    launch { offsetY.animateTo(targetOffsetY.coerceIn(-maxY, maxY)) }
+                                )
+                            }
                             onScaleChange?.invoke(targetScale)
                         }
                     }
@@ -1031,23 +1218,32 @@ fun ZoomableContent(
                         val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
                         val zoomChange = event.calculateZoom()
                         val panChange = event.calculatePan()
+                        val centroid = event.calculateCentroid(useCurrent = false)
                         
                         val isMultiTouch = event.changes.count { it.pressed } > 1
                         
                         if (isMultiTouch || (scale.value > 1f && allowOneFingerPan)) {
                             if (zoomChange != 1f || panChange != androidx.compose.ui.geometry.Offset.Zero) {
                                 val newScale = (scale.value * zoomChange).coerceIn(1f, 5f)
+                                val actualZoom = newScale / scale.value
+                                
                                 coroutineScope.launch {
                                     if (scale.value != newScale) {
                                         scale.snapTo(newScale)
                                         onScaleChange?.invoke(newScale)
                                     }
                                     if (newScale > 1f) {
+                                        val center = androidx.compose.ui.geometry.Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                        val c = centroid - center
+                                        
+                                        val nextX = offsetX.value * actualZoom + panChange.x + c.x * (1 - actualZoom)
+                                        val nextY = offsetY.value * actualZoom + panChange.y + c.y * (1 - actualZoom)
+                                        
                                         val maxX = (containerSize.width * (newScale - 1)) / 2f
                                         val maxY = (containerSize.height * (newScale - 1)) / 2f
                                         
-                                        offsetX.snapTo((offsetX.value + panChange.x).coerceIn(-maxX, maxX))
-                                        offsetY.snapTo((offsetY.value + panChange.y).coerceIn(-maxY, maxY))
+                                        offsetX.snapTo(nextX.coerceIn(-maxX, maxX))
+                                        offsetY.snapTo(nextY.coerceIn(-maxY, maxY))
                                     } else {
                                         offsetX.snapTo(0f)
                                         offsetY.snapTo(0f)
