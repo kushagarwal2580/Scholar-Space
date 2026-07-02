@@ -31,6 +31,7 @@ Scholar Space is an open-source Android application built with modern developmen
 
 ## 💬 Feedback & Support
 
-For latest versions, features, privacy policy, visit our [Website](https://scholarspace.xyz/download.html).
-If you find a bug or have a feature request, please visit our [Feedback Form](https://scholarspace.xyz/feedback.html).
-Love the app? Consider [Supporting the Developer](https://razorpay.me/@scholarspace).
+* For the latest versions, features, and privacy policy, visit our [Website](https://scholarspace.xyz/download.html).
+* Visit our official online website at [scholarspace.xyz](https://scholarspace.xyz).
+* If you find a bug or have a feature request, please visit our [Feedback Form](https://scholarspace.xyz/feedback.html).
+* Love the app? Consider [Supporting the Developer](https://razorpay.me/@scholarspace).
