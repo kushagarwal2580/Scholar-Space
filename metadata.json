@@ -1,6 +1,6 @@
 {
   "name": "Scholar Space",
-  "description": "A comprehensive study companion that helps you organize your materials, track study sessions with timers and stopwatches, and securely sync your learning data to Google Drive.",
+  "description": "Scholar Space is an open-source student study companion app to track study sessions, organize learning materials, and sync data with Google Drive.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
