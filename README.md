@@ -27,7 +27,7 @@ Scholar Space is an open-source Android application built with modern developmen
 - **Google Account**: Required for Drive Sync and Authentication features
 
 ## 🏷️ Topics / Tags
-`student-productivity` `study-tracker` `study-companion` `open-source` `productivity-app` `google-drive-sync`
+`student-app` `google-drive-sync` `study-companion` `student-productivity`
 
 ## 💬 Feedback & Support
 
