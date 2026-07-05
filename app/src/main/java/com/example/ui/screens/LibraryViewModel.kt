@@ -1663,26 +1663,28 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun addFileFromUri(context: Context, uri: Uri, onUpload: ((Uri, String, String, String) -> Unit)? = null) {
+    fun addFileFromUri(context: Context, uri: Uri, overrideName: String? = null, onUpload: ((Uri, String, String, String) -> Unit)? = null) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             // Try to guess name
-            var title = "Unknown File"
+            var title = overrideName ?: "Unknown File"
             var icon = Icons.Default.Description
             var ext = ""
             var finalUri = uri
 
             try {
                 var fileSize: Long? = null
-                val cursor = context.contentResolver.query(uri, null, null, null, null)
-                cursor?.use {
-                    if (it.moveToFirst()) {
-                        val displayNameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                        if (displayNameIndex != -1) {
-                            title = it.getString(displayNameIndex)
-                        }
-                        val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
-                        if (sizeIndex != -1 && !it.isNull(sizeIndex)) {
-                            fileSize = it.getLong(sizeIndex)
+                if (overrideName == null) {
+                    val cursor = context.contentResolver.query(uri, null, null, null, null)
+                    cursor?.use {
+                        if (it.moveToFirst()) {
+                            val displayNameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                            if (displayNameIndex != -1) {
+                                title = it.getString(displayNameIndex)
+                            }
+                            val sizeIndex = it.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                            if (sizeIndex != -1 && !it.isNull(sizeIndex)) {
+                                fileSize = it.getLong(sizeIndex)
+                            }
                         }
                     }
                 }

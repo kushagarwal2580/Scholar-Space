@@ -19,9 +19,3 @@ debug.keystore
 firebase-applet-config.json
 google-services.json
 app/google-services.json
-
-# Build logs and pids
-build.log
-build.pid
-.build-outputs/
-debug.keystore.base64

@@ -149,25 +149,20 @@ fun LibraryScreen(
         libraryViewModel.isFabExpanded.value = false
     }
 
+    var scannedUriToSave by remember { mutableStateOf<android.net.Uri?>(null) }
+    var scannedNameInput by remember { mutableStateOf("") }
+
     val scannerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             val scanResult = com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult.fromActivityResultIntent(result.data)
             scanResult?.pdf?.uri?.let { uri ->
-                libraryViewModel.addFileFromUri(context, uri) { fileUri, mimeType, name, fileId ->
-                    val syncEnabled = true
-                    if (syncEnabled && driveViewModel.isConnected.value) {
-                        driveViewModel.uploadFileToDrive(context, fileUri, mimeType, name, fileId, libraryViewModel)
-                    }
-                }
+                scannedUriToSave = uri
+                scannedNameInput = ""
             } ?: scanResult?.pages?.firstOrNull()?.imageUri?.let { uri ->
-                libraryViewModel.addFileFromUri(context, uri) { fileUri, mimeType, name, fileId ->
-                    val syncEnabled = true
-                    if (syncEnabled && driveViewModel.isConnected.value) {
-                        driveViewModel.uploadFileToDrive(context, fileUri, mimeType, name, fileId, libraryViewModel)
-                    }
-                }
+                scannedUriToSave = uri
+                scannedNameInput = ""
             }
         }
     }
@@ -681,6 +676,91 @@ fun LibraryScreen(
                                         showRenameDialog = false 
                                     }
                                 }) {
+                                    Text("Save", color = Cyan400)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (scannedUriToSave != null) {
+            var scanNameError by remember { mutableStateOf<String?>(null) }
+            
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { scannedUriToSave = null },
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(modifier = Modifier.padding(24.dp)) {
+                    GlassBackground(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(32.dp))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "File name",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            OutlinedTextField(
+                                value = scannedNameInput,
+                                onValueChange = { 
+                                    scannedNameInput = it
+                                    scanNameError = null
+                                },
+                                placeholder = { Text("Name") },
+                                label = { Text("Name") },
+                                textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.onSurface),
+                                singleLine = true,
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
+                                suffix = {
+                                    Text(
+                                        text = ".pdf",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                isError = scanNameError != null,
+                                supportingText = {
+                                    if (scanNameError != null) {
+                                        Text(text = scanNameError!!, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(onClick = { scannedUriToSave = null }) {
+                                    Text("Cancel", color = Slate400)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                TextButton(
+                                    onClick = {
+                                        if (scannedNameInput.isBlank()) {
+                                            scanNameError = "File name is mandatory"
+                                        } else {
+                                            val finalName = "${scannedNameInput.trim()}.pdf"
+                                            val uriToSave = scannedUriToSave!!
+                                            scannedUriToSave = null
+                                            libraryViewModel.addFileFromUri(context, uriToSave, finalName) { fileUri, mimeType, name, fileId ->
+                                                val syncEnabled = true
+                                                if (syncEnabled && driveViewModel.isConnected.value) {
+                                                    driveViewModel.uploadFileToDrive(context, fileUri, mimeType, name, fileId, libraryViewModel)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ) {
                                     Text("Save", color = Cyan400)
                                 }
                             }
