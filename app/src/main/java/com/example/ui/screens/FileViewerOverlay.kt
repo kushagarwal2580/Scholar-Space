@@ -125,6 +125,7 @@ fun FileViewerOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
             .background(Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures(

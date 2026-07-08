@@ -1,4 +1,6 @@
 package com.example.ui.screens
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.lazy.items
 
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.requiredSize
@@ -45,8 +47,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -211,6 +211,11 @@ fun DashboardScreen(
     var activeViewingNote by remember { mutableStateOf<NoteItem?>(null) }
     val notesState by libraryViewModel.notes.collectAsState()
     
+    var editingNoteId by remember { mutableStateOf<String?>(null) }
+    var noteTitle by remember { mutableStateOf("") }
+    var noteContent by remember { mutableStateOf("") }
+    var showEditNoteDialog by remember { mutableStateOf(false) }
+
     val resetTrigger by libraryViewModel.resetDashboardTrigger.collectAsState()
     androidx.compose.runtime.LaunchedEffect(resetTrigger) {
         if (resetTrigger > 0L) {
@@ -610,6 +615,7 @@ fun DashboardScreen(
                                             if (!isOnline.value) {
                                                 android.widget.Toast.makeText(context, "Please connect to internet to open this file", android.widget.Toast.LENGTH_SHORT).show()
                                             } else {
+                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 driveViewModel.downloadFileFromDrive(context, libraryViewModel, file.driveFileId, file.title, file.id) { }
                                             }
                                         } else {
@@ -1114,7 +1120,7 @@ fun DashboardScreen(
             } else {
                 FrostedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { onTabSelected("calendar") },
+                    onClick = null,
                     onLongClick = { showEventSelectionDialog = true }
                 ) {
                     Column(
@@ -1469,11 +1475,15 @@ fun DashboardScreen(
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
                             onClick = {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 if (voiceNote1 != null) {
                                     showAudioPlayDialogForNote = voiceNote1
                                 } else if (textNote1 != null) {
-                                    libraryViewModel.triggerOpenNoteDirectly(textNote1.id)
-                                    onTabSelected("notes")
+                                    editingNoteId = textNote1.id
+                                    noteTitle = textNote1.title
+                                    noteContent = textNote1.content
+                                    showEditNoteDialog = true
+                                    libraryViewModel.setEditingNote(true)
                                 }
                             },
                             onLongClick = {
@@ -1500,7 +1510,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote1 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote1, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { showAudioPlayDialogForNote = voiceNote1 })
+                                    PinnedVoiceNotePlayer(note = voiceNote1, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); showAudioPlayDialogForNote = voiceNote1 })
                                 } else {
                                     Text(
                                         text = textNote1?.content?.ifBlank { "No content" } ?: "",
@@ -1518,7 +1528,7 @@ fun DashboardScreen(
                         // Slot 1 is Empty
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
-                            onClick = { onTabSelected("notes") },
+                            onClick = null,
                             onLongClick = { showNoteSelectionDialogForSlot = 1 }
                         ) {
                             Box(
@@ -1561,11 +1571,15 @@ fun DashboardScreen(
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
                             onClick = {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 if (voiceNote2 != null) {
                                     showAudioPlayDialogForNote = voiceNote2
                                 } else if (textNote2 != null) {
-                                    libraryViewModel.triggerOpenNoteDirectly(textNote2.id)
-                                    onTabSelected("notes")
+                                    editingNoteId = textNote2.id
+                                    noteTitle = textNote2.title
+                                    noteContent = textNote2.content
+                                    showEditNoteDialog = true
+                                    libraryViewModel.setEditingNote(true)
                                 }
                             },
                             onLongClick = {
@@ -1592,7 +1606,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote2 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote2, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { showAudioPlayDialogForNote = voiceNote2 })
+                                    PinnedVoiceNotePlayer(note = voiceNote2, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); showAudioPlayDialogForNote = voiceNote2 })
                                 } else {
                                     Text(
                                         text = textNote2?.content?.ifBlank { "No content" } ?: "",
@@ -1610,7 +1624,7 @@ fun DashboardScreen(
                         // Slot 2 is Empty
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
-                            onClick = { onTabSelected("notes") },
+                            onClick = null,
                             onLongClick = { showNoteSelectionDialogForSlot = 2 }
                         ) {
                             Box(
@@ -1650,7 +1664,10 @@ fun DashboardScreen(
                     note = note,
                     driveViewModel = driveViewModel,
                     libraryViewModel = libraryViewModel,
-                    onDismiss = { showAudioPlayDialogForNote = null }
+                    onDismiss = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showAudioPlayDialogForNote = null 
+                    }
                 )
             }
 
@@ -1848,6 +1865,7 @@ fun DashboardScreen(
                                     if (!isOnline.value) {
                                         android.widget.Toast.makeText(context, "Please connect to internet to open this file", android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
+                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                         driveViewModel.downloadFileFromDrive(context, libraryViewModel, file.driveFileId, file.title, file.id) { }
                                     }
                                 } else {
@@ -2045,9 +2063,51 @@ fun DashboardScreen(
             }
         }
         
-        // note editing dialog is removed because it is now handled as a full screen editor page via the libraryViewModel's direct open trigger
+        // Full Screen Editor / Visual screen overlay for Edit Note
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showEditNoteDialog && editingNoteId != null,
+            enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
+                    androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + 
+                    androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val noteItem = notesState.find { it.id == editingNoteId }
+            if (noteItem != null) {
+                com.example.ui.screens.FullScreenNoteEditor(
+                    title = noteTitle,
+                    content = noteContent,
+                    onTitleChange = { noteTitle = it },
+                    onContentChange = { noteContent = it },
+                    isNewNote = false,
+                    onBack = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showEditNoteDialog = false 
+                        libraryViewModel.setEditingNote(false)
+                    },
+                    onCancel = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showEditNoteDialog = false 
+                        libraryViewModel.setEditingNote(false)
+                    },
+                    onSave = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        if (noteTitle.trim().isEmpty()) {
+                            android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            libraryViewModel.updateNote(noteItem.id, noteTitle, noteContent)
+                            showEditNoteDialog = false
+                            libraryViewModel.setEditingNote(false)
+                        }
+                    },
+                    libraryViewModel = libraryViewModel,
+                    noteItem = noteItem
+                )
+            }
         }
     }
+}
+
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -2080,6 +2140,7 @@ fun FrostedCard(
         content()
     }
 }
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -2386,6 +2447,7 @@ fun getReminderTimeRemaining(dateMillis: Long, timeStr: String): String {
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteItemRow(
@@ -2617,6 +2679,7 @@ fun AudioPlayDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val voiceNotes by libraryViewModel.voiceNotes.collectAsState()
     val currentNote = voiceNotes.find { it.id == note.id } ?: note
     
@@ -2660,6 +2723,7 @@ fun AudioPlayDialog(
                         prepare()
                         duration = this.duration
                         setOnCompletionListener {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             isPlaying = false
                             progress = 0f
                             currentPosition = 0
@@ -2667,6 +2731,7 @@ fun AudioPlayDialog(
                     }
                 }
                 mediaPlayer?.start()
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 isPlaying = true
             } catch (e: Exception) {
                 android.widget.Toast.makeText(context, "Error playing audio", android.widget.Toast.LENGTH_SHORT).show()
@@ -2677,6 +2742,7 @@ fun AudioPlayDialog(
 
     val pauseAudio = {
         if (isPlaying) {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             mediaPlayer?.pause()
             isPlaying = false
         }
@@ -2720,7 +2786,7 @@ fun AudioPlayDialog(
 
     LaunchedEffect(fileExists) {
         if (fileExists) {
-            playAudio()
+            // Do not play automatically
         } else if (currentNote.driveFileId != null && !isDownloading) {
             driveViewModel.downloadFileFromDrive(context, libraryViewModel, currentNote.driveFileId, currentNote.title, currentNote.id) { }
         }

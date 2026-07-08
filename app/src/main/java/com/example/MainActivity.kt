@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.DragEvent
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -129,6 +130,25 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        
+        // Customize the splash screen exit animation for a seamless fade-out transition
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            val fadeOut = android.animation.ObjectAnimator.ofFloat(
+                splashScreenView.view,
+                android.view.View.ALPHA,
+                1f,
+                0f
+            )
+            fadeOut.duration = 350L
+            fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    splashScreenView.remove()
+                }
+            })
+            fadeOut.start()
+        }
+
         super.onCreate(savedInstanceState)
         
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -211,8 +231,15 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 
-                androidx.activity.compose.BackHandler(enabled = currentTab != "dashboard" && authState is AuthState.Success) {
-                    libraryViewModel.setCurrentTab("dashboard")
+                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                val canNavigateBackTab by libraryViewModel.canNavigateBackTab.collectAsState()
+                androidx.activity.compose.BackHandler(enabled = (currentTab != "dashboard" || canNavigateBackTab) && authState is AuthState.Success) {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    if (!libraryViewModel.navigateBackTab()) {
+                        if (currentTab != "dashboard") {
+                            libraryViewModel.setCurrentTab("dashboard")
+                        }
+                    }
                 }
                 
                 val viewingItem by libraryViewModel.viewingItem.collectAsState()
@@ -737,24 +764,33 @@ private fun MainAppContent(
             }
         }
 
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
         var rememberedViewingItem by remember { mutableStateOf<com.example.ui.screens.LibraryItem?>(null) }
+        
+        if (viewingItem != null) {
+            rememberedViewingItem = viewingItem
+        }
+        
         LaunchedEffect(viewingItem) {
             if (viewingItem != null) {
-                rememberedViewingItem = viewingItem
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             }
         }
 
         androidx.compose.animation.AnimatedVisibility(
             visible = viewingItem != null,
             enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
-                    androidx.compose.animation.scaleIn(initialScale = 0.9f, animationSpec = androidx.compose.animation.core.tween(300)),
-            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300)) + 
-                   androidx.compose.animation.scaleOut(targetScale = 0.9f, animationSpec = androidx.compose.animation.core.tween(300))
+                    androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + 
+                    androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing))
         ) {
             rememberedViewingItem?.let { item ->
                 com.example.ui.screens.FileViewerOverlay(
                     item = item,
-                    onClose = { libraryViewModel.setViewingItem(null) },
+                    onClose = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        libraryViewModel.setViewingItem(null) 
+                    },
                     onShare = { libraryViewModel.shareFile(activity, it, driveViewModel) },
                     onDownload = { libraryViewModel.saveToDevice(activity, it, driveViewModel) }
                 )

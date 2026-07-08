@@ -371,6 +371,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     private val _currentTab = MutableStateFlow("dashboard")
     val currentTab: StateFlow<String> = _currentTab.asStateFlow()
+    private val tabBackStack = java.util.Stack<String>()
+    private val _canNavigateBackTab = MutableStateFlow(false)
+    val canNavigateBackTab: StateFlow<Boolean> = _canNavigateBackTab.asStateFlow()
+
+    private fun updateCanNavigateBackTab() {
+        _canNavigateBackTab.value = !tabBackStack.isEmpty()
+    }
 
     private val _isEditingNote = MutableStateFlow(false)
     val isEditingNote: StateFlow<Boolean> = _isEditingNote.asStateFlow()
@@ -384,7 +391,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     fun triggerOpenNewNoteDirectly() {
         _openNewNoteDirectly.value = true
-        _currentTab.value = "notes"
+        setCurrentTab("notes")
     }
 
     fun clearOpenNewNoteDirectly() {
@@ -396,7 +403,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     fun triggerOpenNoteDirectly(noteId: String) {
         _openNoteIdDirectly.value = noteId
-        _currentTab.value = "notes"
+        setCurrentTab("notes")
     }
 
     fun clearOpenNoteDirectly() {
@@ -1362,10 +1369,32 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun setCurrentTab(tab: String) {
+        val oldTab = _currentTab.value
+        if (oldTab != tab) {
+            if (tabBackStack.isEmpty() || tabBackStack.peek() != oldTab) {
+                tabBackStack.push(oldTab)
+                updateCanNavigateBackTab()
+            }
+        }
         _currentTab.value = tab
         if (tab == "calendar") {
             clearStaticNotifications()
         }
+    }
+
+    fun navigateBackTab(): Boolean {
+        while (!tabBackStack.isEmpty()) {
+            val prevTab = tabBackStack.pop()
+            updateCanNavigateBackTab()
+            if (prevTab != _currentTab.value) {
+                _currentTab.value = prevTab
+                if (prevTab == "calendar") {
+                    clearStaticNotifications()
+                }
+                return true
+            }
+        }
+        return false
     }
 
     fun triggerResetDashboard() {

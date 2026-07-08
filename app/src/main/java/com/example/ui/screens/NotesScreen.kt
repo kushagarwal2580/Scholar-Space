@@ -72,6 +72,7 @@ fun NotesScreen(
     var syncMessageText by remember { mutableStateOf("Sync complete") }
     var syncMessageColor by remember { mutableStateOf(Cyan400) }
     
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val context = LocalContext.current
     val isOnline = remember { 
         mutableStateOf(
@@ -282,6 +283,7 @@ fun NotesScreen(
                                     isSelectionMode = isSelectionMode,
                                     isSelected = selectedNotes.contains(note.id),
                                     onClick = {
+                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                         if (isSelectionMode) {
                                             val newSelection = selectedNotes.toMutableSet()
                                             if (newSelection.contains(note.id)) newSelection.remove(note.id) else newSelection.add(note.id)
@@ -460,15 +462,9 @@ fun NotesScreen(
         androidx.compose.animation.AnimatedVisibility(
             visible = showAddNoteDialog,
             enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
-                    androidx.compose.animation.scaleIn(
-                        initialScale = 0.95f, 
-                        animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
-                    ),
+                    androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
             exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + 
-                   androidx.compose.animation.scaleOut(
-                        targetScale = 0.95f, 
-                        animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing)
-                   ),
+                    androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing)),
             modifier = Modifier.fillMaxSize()
         ) {
             FullScreenNoteEditor(
@@ -477,9 +473,16 @@ fun NotesScreen(
                 onTitleChange = { noteTitle = it },
                 onContentChange = { noteContent = it },
                 isNewNote = true,
-                onBack = { showAddNoteDialog = false },
-                onCancel = { showAddNoteDialog = false },
+                onBack = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    showAddNoteDialog = false 
+                },
+                onCancel = { 
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    showAddNoteDialog = false 
+                },
                 onSave = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     if (noteTitle.trim().isEmpty()) {
                         android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
                     } else {
@@ -496,15 +499,9 @@ fun NotesScreen(
         androidx.compose.animation.AnimatedVisibility(
             visible = showEditNoteDialog && editingNoteId != null,
             enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) + 
-                    androidx.compose.animation.scaleIn(
-                        initialScale = 0.95f, 
-                        animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
-                    ),
+                    androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
             exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) + 
-                   androidx.compose.animation.scaleOut(
-                        targetScale = 0.95f, 
-                        animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing)
-                   ),
+                    androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(250, easing = androidx.compose.animation.core.FastOutLinearInEasing)),
             modifier = Modifier.fillMaxSize()
         ) {
             val noteItem = notes.find { it.id == editingNoteId }
@@ -515,9 +512,16 @@ fun NotesScreen(
                     onTitleChange = { noteTitle = it },
                     onContentChange = { noteContent = it },
                     isNewNote = false,
-                    onBack = { showEditNoteDialog = false },
-                    onCancel = { showEditNoteDialog = false },
+                    onBack = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showEditNoteDialog = false 
+                    },
+                    onCancel = { 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        showEditNoteDialog = false 
+                    },
                     onSave = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (noteTitle.trim().isEmpty()) {
                             android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
                         } else {
@@ -582,6 +586,7 @@ fun FullScreenNoteEditor(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
             .background(Color(0xFF0F172A))
             .clickable(enabled = false) {} // block click propagation
     ) {
@@ -1294,6 +1299,7 @@ fun VoiceNoteCard(
             ) {
                 IconButton(
                     onClick = {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (!fileExists && note.driveFileId != null && !isDownloading) {
                             onDownloadRequest()
                             // Download
@@ -1317,6 +1323,7 @@ fun VoiceNoteCard(
                                                 progress = 0f
                                                 currentPosition = 0
                                                 showProgressBar = false
+                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                             }
                                         }
                                     }
