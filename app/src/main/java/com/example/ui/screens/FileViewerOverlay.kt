@@ -34,6 +34,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.example.ui.theme.*
@@ -87,49 +93,87 @@ fun FileViewerOverlay(
         }
     }
 
+    val activity = LocalContext.current.findActivity() as? androidx.activity.ComponentActivity
     DisposableEffect(Unit) {
         onDispose {
             if (window != null) {
                 val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, view)
                 insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
+            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
     }
 
-    val currentStatusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val currentStatusBarHeight = androidx.compose.foundation.layout.WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding()
     var savedStatusBarHeight by remember { mutableStateOf(40.dp) }
     val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     
-    LaunchedEffect(currentStatusBarHeight, isLandscape) {
-        if (currentStatusBarHeight > savedStatusBarHeight) {
+    LaunchedEffect(currentStatusBarHeight) {
+        if (currentStatusBarHeight > 0.dp) {
             savedStatusBarHeight = currentStatusBarHeight
-        } else if (isLandscape) {
-            savedStatusBarHeight = 0.dp
         }
     }
     
     val currentNavBarHeight = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var savedNavBarHeight by remember { mutableStateOf(0.dp) }
     
-    LaunchedEffect(currentNavBarHeight, isLandscape) {
-        if (currentNavBarHeight > savedNavBarHeight) {
+    var isInPipMode by remember { mutableStateOf(false) }
+    DisposableEffect(activity) {
+        val listener = androidx.core.util.Consumer<androidx.core.app.PictureInPictureModeChangedInfo> { info ->
+            isInPipMode = info.isInPictureInPictureMode
+            if (isInPipMode) {
+                showControls = false
+            } else {
+                showControls = true
+            }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            activity?.addOnPictureInPictureModeChangedListener(listener)
+        }
+        onDispose {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                activity?.removeOnPictureInPictureModeChangedListener(listener)
+            }
+        }
+    }
+    
+    LaunchedEffect(currentNavBarHeight) {
+        if (currentNavBarHeight > 0.dp) {
             savedNavBarHeight = currentNavBarHeight
         }
     }
 
     val topPadding = savedStatusBarHeight + 64.dp
     val bottomPadding = savedNavBarHeight + 96.dp
+    
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+    
+    val initialBrightness = remember { activity?.window?.attributes?.screenBrightness ?: -1f }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            val layoutParams = activity?.window?.attributes
+            // Restore to system brightness (-1f) when leaving the player
+            layoutParams?.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            activity?.window?.attributes = layoutParams
+        }
+    }
 
     androidx.activity.compose.BackHandler(onBack = onClose)
+
+    val cornerRadius by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isInPipMode) 0.dp else 32.dp,
+        label = "cornerRadius"
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
             .background(Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { showControls = !showControls }
+                    onTap = { if (!isInPipMode) showControls = !showControls }
                 )
             }
     ) {
@@ -159,13 +203,112 @@ fun FileViewerOverlay(
                 }
             }
             mimeType.startsWith("video/") -> {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 var mediaPlayerRef by remember { mutableStateOf<android.media.MediaPlayer?>(null) }
                 var currentPosition by remember { mutableStateOf(0) }
                 var videoDuration by remember { mutableStateOf(0) }
                 var isDraggingSlider by remember { mutableStateOf(false) }
                 var sliderTargetPosition by remember { mutableStateOf(0f) }
                 var wasPlayingBeforeDrag by remember { mutableStateOf(false) }
+                var videoAspectRatio by remember { mutableStateOf<Float?>(null) }
+                var playbackSpeed by remember { mutableStateOf(1f) }
+                var videoViewBounds by remember { mutableStateOf<android.graphics.Rect?>(null) }
                 
+                MediaSessionHelper(
+                    context = context,
+                    title = item.title,
+                    isPlaying = isPlaying,
+                    duration = videoDuration.toLong(),
+                    position = currentPosition.toLong(),
+                    onPlay = {
+                        mediaPlayerRef?.start()
+                        isPlaying = true
+                    },
+                    onPause = {
+                        mediaPlayerRef?.pause()
+                        isPlaying = false
+                    },
+                    onSeekTo = { pos ->
+                        mediaPlayerRef?.let { mp ->
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                mp.seekTo(pos, android.media.MediaPlayer.SEEK_CLOSEST)
+                            } else {
+                                mp.seekTo(pos.toInt())
+                            }
+                            currentPosition = pos.toInt()
+                        }
+                    }
+                )
+
+                androidx.compose.runtime.DisposableEffect(context, isPlaying) {
+                    val receiver = object : android.content.BroadcastReceiver() {
+                        override fun onReceive(ctx: android.content.Context?, intent: android.content.Intent?) {
+                            if (intent?.action == "com.example.ACTION_PIP_PLAY_PAUSE") {
+                                mediaPlayerRef?.let { mp ->
+                                    if (isPlaying) {
+                                        mp.pause()
+                                        isPlaying = false
+                                    } else {
+                                        mp.start()
+                                        isPlaying = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    val filter = android.content.IntentFilter("com.example.ACTION_PIP_PLAY_PAUSE")
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        context.registerReceiver(receiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+                    } else {
+                        context.registerReceiver(receiver, filter)
+                    }
+                    onDispose {
+                        try {
+                            context.unregisterReceiver(receiver)
+                        } catch (e: Exception) {}
+                    }
+                }
+
+                LaunchedEffect(isPlaying, videoViewBounds, videoAspectRatio) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        val builder = android.app.PictureInPictureParams.Builder()
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            builder.setAutoEnterEnabled(isPlaying)
+                        }
+
+                        val playPauseIntent = android.app.PendingIntent.getBroadcast(
+                            context,
+                            102,
+                            android.content.Intent("com.example.ACTION_PIP_PLAY_PAUSE").setPackage(context.packageName),
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                        val playPauseIcon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+                        val playPauseTitle = if (isPlaying) "Pause" else "Play"
+                        val playPauseAction = android.app.RemoteAction(
+                            android.graphics.drawable.Icon.createWithResource(context, playPauseIcon),
+                            playPauseTitle,
+                            playPauseTitle,
+                            playPauseIntent
+                        )
+
+                        builder.setActions(listOf(playPauseAction))
+
+                        videoViewBounds?.let {
+                            builder.setSourceRectHint(it)
+                        }
+                        if (videoAspectRatio != null && videoAspectRatio!! > 0f) {
+                            try {
+                                val clampedRatio = videoAspectRatio!!.coerceIn(1f/2.39f, 2.39f)
+                                val rat = android.util.Rational((clampedRatio * 10000).toInt(), 10000)
+                                builder.setAspectRatio(rat)
+                            } catch (e: Exception) {}
+                        }
+                        try {
+                            activity?.setPictureInPictureParams(builder.build())
+                        } catch (e: Exception) {}
+                    }
+                }
+
                 LaunchedEffect(isPlaying, showControls) {
                     while (isPlaying && !isDraggingSlider) {
                         mediaPlayerRef?.let {
@@ -184,67 +327,230 @@ fun FileViewerOverlay(
                     }
                 }
                 
-                ZoomableContent(
-                    modifier = Modifier.fillMaxSize(),
-                    allowOneFingerPan = true,
-                    onTap = { showControls = !showControls }
-                ) {
-                    AndroidView(
-                        modifier = Modifier.fillMaxSize(),
-                        factory = { ctx ->
-                            android.view.TextureView(ctx).apply {
-                                surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
-                                    override fun onSurfaceTextureAvailable(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
-                                        val mp = android.media.MediaPlayer()
-                                        mediaPlayerRef = mp
-                                        try {
-                                            item.uri?.let { mp.setDataSource(ctx, it) }
-                                            mp.setSurface(android.view.Surface(surface))
-                                            mp.setOnPreparedListener { preparedMp ->
-                                                videoDuration = preparedMp.duration
-                                                isPlaying = true
-                                                preparedMp.start()
-                                            }
-                                            mp.setOnCompletionListener {
-                                                isPlaying = false
-                                                currentPosition = videoDuration
-                                            }
-                                            mp.setOnVideoSizeChangedListener { _, videoWidth, videoHeight ->
-                                                // Calculate scaling to preserve aspect ratio
-                                                val viewRatio = width.toFloat() / height.toFloat()
-                                                val videoRatio = videoWidth.toFloat() / videoHeight.toFloat()
-                                                
-                                                val matrix = android.graphics.Matrix()
-                                                if (videoWidth > 0 && videoHeight > 0) {
-                                                    if (videoRatio > viewRatio) {
-                                                        val scaleY = viewRatio / videoRatio
-                                                        matrix.setScale(1f, scaleY, width / 2f, height / 2f)
-                                                    } else {
-                                                        val scaleX = videoRatio / viewRatio
-                                                        matrix.setScale(scaleX, 1f, width / 2f, height / 2f)
+
+                val activity = context as? androidx.activity.ComponentActivity
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                
+                var startY by remember { mutableStateOf(0f) }
+                var startBrightness by remember { mutableStateOf(0f) }
+                var startVolume by remember { mutableStateOf(0) }
+                
+                var showBrightnessIndicator by remember { mutableStateOf(false) }
+                var currentBrightness by remember { mutableStateOf(activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: 0.5f) }
+                
+                var showVolumeIndicator by remember { mutableStateOf(false) }
+                var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)) }
+
+                DisposableEffect(context) {
+                    val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+                        override fun onChange(selfChange: Boolean) {
+                            try {
+                                val systemBrightness = android.provider.Settings.System.getInt(context.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS).toFloat() / 255f
+                                val windowBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
+                                if (windowBrightness < 0) {
+                                    currentBrightness = systemBrightness
+                                }
+                            } catch (e: Exception) {}
+                        }
+                    }
+                    context.contentResolver.registerContentObserver(
+                        android.provider.Settings.System.getUriFor(android.provider.Settings.System.SCREEN_BRIGHTNESS),
+                        false,
+                        observer
+                    )
+                    
+                    val receiver = object : android.content.BroadcastReceiver() {
+                        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                            if (intent?.action == "android.media.VOLUME_CHANGED_ACTION") {
+                                currentVolume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                            }
+                        }
+                    }
+                    context.registerReceiver(receiver, android.content.IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
+                    
+                    onDispose {
+                        context.contentResolver.unregisterContentObserver(observer)
+                        context.unregisterReceiver(receiver)
+                    }
+                }
+
+                
+                
+                LaunchedEffect(showControls, isInPipMode) {
+                    if (!showControls || isInPipMode) {
+                        showBrightnessIndicator = false
+                        showVolumeIndicator = false
+                    }
+                }
+                
+
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    ZoomableContent(
+                        modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    startY = offset.y
+                                    startBrightness = activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: 0.5f
+                                    startVolume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                                },
+                                onDragEnd = {
+                                    showBrightnessIndicator = false
+                                    showVolumeIndicator = false
+                                },
+                                onDragCancel = {
+                                    showBrightnessIndicator = false
+                                    showVolumeIndicator = false
+                                },
+                                onDrag = { change, dragAmount ->
+                                    val deltaY = change.position.y - startY
+                                    if (change.position.x < size.width / 2) {
+                                        // Brightness
+                                        val deltaBrightness = (-deltaY * 4f) / size.height
+                                        val newBrightness = (startBrightness + deltaBrightness).coerceIn(0f, 1f)
+                                        val layoutParams = activity?.window?.attributes
+                                        layoutParams?.screenBrightness = newBrightness
+                                        activity?.window?.attributes = layoutParams
+                                        currentBrightness = newBrightness
+                                        showBrightnessIndicator = true
+                                        showVolumeIndicator = false
+                                    } else {
+                                        // Volume
+                                        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                                        val deltaVolume = ((-deltaY * 4f) / size.height) * maxVolume
+                                        val newVolume = (startVolume + deltaVolume).toInt().coerceIn(0, maxVolume)
+                                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVolume, 0)
+                                        currentVolume = newVolume
+                                        showVolumeIndicator = true
+                                        showBrightnessIndicator = false
+                                    }
+                                }
+                            )
+                        },
+                        allowOneFingerPan = true,
+                        onTap = { showControls = !showControls },
+                        onDoubleTap = { offset ->
+                            val screenWidth = context.resources.displayMetrics.widthPixels
+                            mediaPlayerRef?.let { mp ->
+                                val current = mp.currentPosition
+                                if (offset.x < screenWidth / 2) {
+                                    mp.seekTo(maxOf(0, current - 10000))
+                                } else {
+                                    mp.seekTo(minOf(videoDuration, current + 10000))
+                                }
+                                currentPosition = mp.currentPosition
+                            }
+                        }
+                    ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AndroidView(
+                            modifier = Modifier
+                                .then(
+                                    if (videoAspectRatio != null) Modifier.aspectRatio(videoAspectRatio!!)
+                                    else Modifier.fillMaxSize()
+                                )
+                                .onGloballyPositioned { coords ->
+                                    val bounds = coords.boundsInWindow()
+                                    videoViewBounds = android.graphics.Rect(
+                                        bounds.left.toInt(),
+                                        bounds.top.toInt(),
+                                        bounds.right.toInt(),
+                                        bounds.bottom.toInt()
+                                    )
+                                },
+                            factory = { ctx ->
+                                android.view.TextureView(ctx).apply {
+                                    surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
+                                        override fun onSurfaceTextureAvailable(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
+                                            val mp = android.media.MediaPlayer()
+                                            mediaPlayerRef = mp
+                                            try {
+                                                item.uri?.let { mp.setDataSource(ctx, it) }
+                                                mp.setSurface(android.view.Surface(surface))
+                                                mp.setOnPreparedListener { preparedMp ->
+                                                    videoDuration = preparedMp.duration
+                                                    isPlaying = true
+                                                    preparedMp.start()
+                                                }
+                                                mp.setOnCompletionListener {
+                                                    isPlaying = false
+                                                    currentPosition = videoDuration
+                                                }
+                                                mp.setOnVideoSizeChangedListener { _, videoWidth, videoHeight ->
+                                                    if (videoWidth > 0 && videoHeight > 0) {
+                                                        videoAspectRatio = videoWidth.toFloat() / videoHeight.toFloat()
                                                     }
                                                 }
-                                                setTransform(matrix)
+                                                mp.prepareAsync()
+                                            } catch (e: Exception) {
+                                                mp.release()
                                             }
-                                            mp.prepareAsync()
-                                        } catch (e: Exception) {
-                                            mp.release()
                                         }
-                                    }
-                                    override fun onSurfaceTextureSizeChanged(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {}
-                                    override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {}
-                                    override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean {
-                                        mediaPlayerRef?.release()
-                                        mediaPlayerRef = null
-                                        return true
+                                        override fun onSurfaceTextureSizeChanged(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {}
+                                        override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {}
+                                        override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean {
+                                            mediaPlayerRef?.release()
+                                            mediaPlayerRef = null
+                                            return true
+                                        }
                                     }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
                 
+
+                    // Indicator Overlays
+                    if (!isInPipMode) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isLandscape) 96.dp else 24.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Box(modifier = Modifier.widthIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = showBrightnessIndicator,
+                                    enter = androidx.compose.animation.fadeIn(),
+                                    exit = androidx.compose.animation.fadeOut()
+                                ) {
+                                    VerticalSlider(
+                                        value = currentBrightness,
+                                        onValueChange = {},
+                                        icon = androidx.compose.material.icons.Icons.Default.LightMode,
+                                        interactive = false,
+                                        textPosition = if (isLandscape) "right" else "bottom"
+                                    )
+                                }
+                            }
+                            
+                            Box(modifier = Modifier.weight(1f)) // spacer
+                            
+                            Box(modifier = Modifier.widthIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = showVolumeIndicator,
+                                    enter = androidx.compose.animation.fadeIn(),
+                                    exit = androidx.compose.animation.fadeOut()
+                                ) {
+                                    val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                                    val ratio = if (maxVolume > 0) currentVolume.toFloat() / maxVolume else 0f
+                                    VerticalSlider(
+                                        value = ratio,
+                                        onValueChange = {},
+                                        icon = androidx.compose.material.icons.Icons.Default.VolumeUp,
+                                        interactive = false,
+                                        textPosition = if (isLandscape) "left" else "bottom"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    }
+                } // End of Box wrapping ZoomableContent
+                
                 // Custom Controls overlay
+                if (!isInPipMode) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showControls,
                     enter = androidx.compose.animation.fadeIn(),
@@ -254,6 +560,8 @@ fun FileViewerOverlay(
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        // Empty center (buttons moved to bottom)
+
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -261,72 +569,116 @@ fun FileViewerOverlay(
                                 .background(androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                                 ))
-                                .padding(bottom = savedNavBarHeight)
+                                .padding(bottom = if (isLandscape) 12.dp else savedNavBarHeight)
                                 .padding(horizontal = 16.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Playback Controls Row (above the timer bar)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(28.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp)
                             ) {
-                                IconButton(
-                                    onClick = {
-                                    mediaPlayerRef?.let { mp ->
-                                        val current = mp.currentPosition
-                                        mp.seekTo(maxOf(0, current - 10000))
-                                        currentPosition = mp.currentPosition
+                                Box(modifier = Modifier.align(Alignment.CenterStart)) {
+                                    var showSpeedMenu by remember { mutableStateOf(false) }
+                                    IconButton(
+                                        onClick = { showSpeedMenu = true },
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Text("${playbackSpeed}x", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                     }
-                                    },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
-                                ) {
-                                    Icon(Icons.Default.Replay10, "Rewind 10s", tint = Color.White, modifier = Modifier.size(24.dp))
-                                }
-                                
-                                IconButton(
-                                    onClick = {
-                                    mediaPlayerRef?.let { mp ->
-                                        if (mp.isPlaying) {
-                                            mp.pause()
-                                            isPlaying = false
-                                        } else {
-                                            if (currentPosition >= videoDuration) {
-                                                mp.seekTo(0)
-                                            }
-                                            mp.start()
-                                            isPlaying = true
+                                    androidx.compose.material3.MaterialTheme(
+                                        colorScheme = androidx.compose.material3.darkColorScheme(
+                                            surface = Color(0xFF222222),
+                                            onSurface = Color.White
+                                        ),
+                                        shapes = androidx.compose.material3.MaterialTheme.shapes.copy(
+                                            extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                        )
+                                    ) {
+                                        androidx.compose.material3.DropdownMenu(
+                                            expanded = showSpeedMenu,
+                                            onDismissRequest = { showSpeedMenu = false },
+                                            modifier = Modifier.height(192.dp).width(64.dp)
+                                        ) {
+                                        listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f).forEach { speed ->
+                                            androidx.compose.material3.DropdownMenuItem(
+                                                modifier = Modifier.height(48.dp),
+                                                contentPadding = PaddingValues(horizontal = 0.dp),
+                                                text = { 
+                                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                                        Text(
+                                                            "${speed}x", 
+                                                            color = if (playbackSpeed == speed) Cyan400 else Color.White,
+                                                            fontWeight = if (playbackSpeed == speed) FontWeight.Bold else FontWeight.Normal,
+                                                            fontSize = 16.sp
+                                                        ) 
+                                                    }
+                                                },
+                                                onClick = {
+                                                    playbackSpeed = speed
+                                                    showSpeedMenu = false
+                                                    try {
+                                                        mediaPlayerRef?.let { mp ->
+                                                            if (android.os.Build.VERSION.SDK_INT >= 23) {
+                                                                mp.playbackParams = mp.playbackParams.setSpeed(speed)
+                                                            }
+                                                            mp.start()
+                                                            isPlaying = true
+                                                        }
+                                                    } catch (e: Exception) {}
+                                                }
+                                            )
                                         }
                                     }
-                                    },
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(CircleShape)
-                                        .background(Cyan400)
-                                ) {
-                                    Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, "Play/Pause", tint = Color.Black, modifier = Modifier.size(36.dp))
+                                    }
                                 }
 
+                                Box(modifier = Modifier.align(Alignment.Center)) {
+                                    IconButton(
+                                        onClick = {
+                                            mediaPlayerRef?.let { mp ->
+                                                if (mp.isPlaying) {
+                                                    mp.pause()
+                                                    isPlaying = false
+                                                } else {
+                                                    if (currentPosition >= videoDuration) {
+                                                        mp.seekTo(0)
+                                                    }
+                                                    mp.start()
+                                                    isPlaying = true
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(CircleShape)
+                                            .background(Cyan400)
+                                    ) {
+                                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, "Play/Pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                                    }
+                                }
+
+                                val configuration = androidx.compose.ui.platform.LocalConfiguration.current
                                 IconButton(
                                     onClick = {
-                                    mediaPlayerRef?.let { mp ->
-                                        val current = mp.currentPosition
-                                        mp.seekTo(minOf(videoDuration, current + 10000))
-                                        currentPosition = mp.currentPosition
-                                    }
+                                        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                                        if (isLandscape) {
+                                            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                        } else {
+                                            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                        }
                                     },
                                     modifier = Modifier
+                                        .align(Alignment.CenterEnd)
                                         .size(48.dp)
                                         .clip(CircleShape)
                                         .background(Color.White.copy(alpha = 0.15f))
                                 ) {
-                                    Icon(Icons.Default.Forward10, "Forward 10s", tint = Color.White, modifier = Modifier.size(24.dp))
+                                    Icon(androidx.compose.material.icons.Icons.Default.ScreenRotation, "Rotate", tint = Color.White, modifier = Modifier.size(24.dp))
                                 }
                             }
-
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
@@ -340,12 +692,14 @@ fun FileViewerOverlay(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+                                Spacer(modifier = Modifier.weight(1f))
                                 Text(
                                     text = formatDuration(videoDuration),
                                     color = Color.White,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -390,6 +744,7 @@ fun FileViewerOverlay(
                         }
                     }
                 }
+                }
             }
             mimeType.startsWith("audio/") -> {
                 val mediaPlayer = remember { android.media.MediaPlayer() }
@@ -398,6 +753,31 @@ fun FileViewerOverlay(
                 var isDraggingSlider by remember { mutableStateOf(false) }
                 var sliderTargetPosition by remember { mutableStateOf(0f) }
                 var wasPlayingBeforeDrag by remember { mutableStateOf(false) }
+                var videoAspectRatio by remember { mutableStateOf<Float?>(null) }
+                var playbackSpeed by remember { mutableStateOf(1f) }
+                var videoViewBounds by remember { mutableStateOf<android.graphics.Rect?>(null) }
+                
+                MediaSessionHelper(
+                    context = androidx.compose.ui.platform.LocalContext.current,
+                    title = item.title,
+                    isPlaying = isPlaying,
+                    duration = audioDuration.toLong(),
+                    position = currentPosition.toLong(),
+                    onPlay = {
+                        try { mediaPlayer.start() } catch (e: Exception) {}
+                        isPlaying = true
+                    },
+                    onPause = {
+                        try { mediaPlayer.pause() } catch (e: Exception) {}
+                        isPlaying = false
+                    },
+                    onSeekTo = { pos ->
+                        try {
+                            mediaPlayer.seekTo(pos.toInt())
+                            currentPosition = pos.toInt()
+                        } catch (e: Exception) {}
+                    }
+                )
 
                 LaunchedEffect(isPlaying) {
                     while (isPlaying && !isDraggingSlider) {
@@ -439,57 +819,191 @@ fun FileViewerOverlay(
                 }
 
                 // Gray box in center for audio details
+                val context = LocalContext.current
+                val activity = context as? androidx.activity.ComponentActivity
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                
+                var currentBrightness by remember { mutableStateOf(activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: 0.5f) }
+                var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)) }
+                val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                
+                var showBrightnessIndicator by remember { mutableStateOf(false) }
+                var showVolumeIndicator by remember { mutableStateOf(false) }
+                var startY by remember { mutableStateOf(0f) }
+                var startBrightness by remember { mutableStateOf(0f) }
+                var startVolume by remember { mutableStateOf(0) }
+
+                DisposableEffect(context) {
+                    val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+                        override fun onChange(selfChange: Boolean) {
+                            try {
+                                val systemBrightness = android.provider.Settings.System.getInt(context.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS).toFloat() / 255f
+                                val windowBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
+                                if (windowBrightness < 0) {
+                                    currentBrightness = systemBrightness
+                                }
+                            } catch (e: Exception) {}
+                        }
+                    }
+                    context.contentResolver.registerContentObserver(
+                        android.provider.Settings.System.getUriFor(android.provider.Settings.System.SCREEN_BRIGHTNESS),
+                        false,
+                        observer
+                    )
+                    
+                    val receiver = object : android.content.BroadcastReceiver() {
+                        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                            if (intent?.action == "android.media.VOLUME_CHANGED_ACTION") {
+                                currentVolume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                            }
+                        }
+                    }
+                    context.registerReceiver(receiver, android.content.IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
+                    
+                    onDispose {
+                        context.contentResolver.unregisterContentObserver(observer)
+                        context.unregisterReceiver(receiver)
+                    }
+                }
+                
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                startY = offset.y
+                                startBrightness = activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0 } ?: 0.5f
+                                startVolume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                            },
+                            onDragEnd = {
+                                showBrightnessIndicator = false
+                                showVolumeIndicator = false
+                            },
+                            onDragCancel = {
+                                showBrightnessIndicator = false
+                                showVolumeIndicator = false
+                            },
+                            onDrag = { change, dragAmount ->
+                                val deltaY = change.position.y - startY
+                                if (change.position.x < size.width / 2) {
+                                    val deltaBrightness = (-deltaY * 4f) / size.height
+                                    val newBrightness = (startBrightness + deltaBrightness).coerceIn(0f, 1f)
+                                    val layoutParams = activity?.window?.attributes
+                                    layoutParams?.screenBrightness = newBrightness
+                                    activity?.window?.attributes = layoutParams
+                                    currentBrightness = newBrightness
+                                    showBrightnessIndicator = true
+                                    showVolumeIndicator = false
+                                } else {
+                                    val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                                    val deltaVolume = ((-deltaY * 4f) / size.height) * maxVolume
+                                    val newVolume = (startVolume + deltaVolume).toInt().coerceIn(0, maxVolume)
+                                    audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVolume, 0)
+                                    currentVolume = newVolume
+                                    showVolumeIndicator = true
+                                    showBrightnessIndicator = false
+                                }
+                            }
+                        )
+                    }.pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { showControls = !showControls },
+                            onDoubleTap = { offset ->
+                                val screenWidth = context.resources.displayMetrics.widthPixels
+                                try {
+                                    val current = mediaPlayer.currentPosition
+                                    if (offset.x < screenWidth / 2) {
+                                        mediaPlayer.seekTo(maxOf(0, current - 10000))
+                                    } else {
+                                        mediaPlayer.seekTo(minOf(audioDuration, current + 10000))
+                                    }
+                                    currentPosition = mediaPlayer.currentPosition
+                                } catch (e: Exception) {}
+                            }
+                        )
+                    },
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 40.dp)
-                            .height(180.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                            .background(Color.DarkGray.copy(alpha = 0.5f))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { showControls = !showControls },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(16.dp)
+                    Box(modifier = Modifier.align(Alignment.Center)) {
+                        androidx.compose.material3.Surface(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .padding(horizontal = 32.dp)
+                                .heightIn(max = 240.dp)
+                                .widthIn(max = 300.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = Cyan400,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = item.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            val formattedSize = item.fileSize?.let { bytes ->
-                                if (bytes < 1024) "$bytes B" else if (bytes < 1024 * 1024) "${bytes / 1024} KB" else String.format(java.util.Locale.US, "%.1f MB", bytes.toFloat() / (1024 * 1024))
-                            } ?: ""
-                            Text(
-                                text = "Audio File" + if (formattedSize.isNotEmpty()) " • $formattedSize" else "",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 14.sp
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(androidx.compose.material.icons.Icons.Default.MusicNote, null, tint = Cyan400, modifier = Modifier.size(48.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = item.title,
+                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                val formattedSize = item.fileSize?.let { bytes ->
+                                    if (bytes < 1024) "$bytes B" else if (bytes < 1024 * 1024) "${bytes / 1024} KB" else String.format(java.util.Locale.US, "%.1f MB", bytes.toFloat() / (1024 * 1024))
+                                } ?: ""
+                                Text(
+                                    text = "Audio File" + if (formattedSize.isNotEmpty()) " • $formattedSize" else "",
+                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = if (isLandscape) 96.dp else 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(modifier = Modifier.widthIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = showBrightnessIndicator,
+                                enter = androidx.compose.animation.fadeIn(),
+                                exit = androidx.compose.animation.fadeOut()
+                            ) {
+                                VerticalSlider(
+                                    value = currentBrightness,
+                                    onValueChange = {},
+                                    icon = androidx.compose.material.icons.Icons.Default.LightMode,
+                                    interactive = false,
+                                    textPosition = if (isLandscape) "right" else "bottom"
+                                )
+                            }
+                        }
+                        
+                        Box(modifier = Modifier.weight(1f)) // spacer
+                        
+                        Box(modifier = Modifier.widthIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = showVolumeIndicator,
+                                enter = androidx.compose.animation.fadeIn(),
+                                exit = androidx.compose.animation.fadeOut()
+                            ) {
+                                VerticalSlider(
+                                    value = if (maxVolume > 0) currentVolume.toFloat() / maxVolume else 0f,
+                                    onValueChange = {},
+                                    icon = androidx.compose.material.icons.Icons.Default.VolumeUp,
+                                    interactive = false,
+                                    textPosition = if (isLandscape) "left" else "bottom"
+                                )
+                            }
                         }
                     }
                 }
 
                 // Controls overlay at bottom
+                if (!isInPipMode) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showControls,
                     enter = androidx.compose.animation.fadeIn(),
@@ -499,6 +1013,8 @@ fun FileViewerOverlay(
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        // Empty center (buttons moved to bottom)
+
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -506,73 +1022,116 @@ fun FileViewerOverlay(
                                 .background(androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                                 ))
-                                .padding(bottom = savedNavBarHeight)
+                                .padding(bottom = if (isLandscape) 12.dp else savedNavBarHeight)
                                 .padding(horizontal = 16.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Playback Controls Row (above the timer bar)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(28.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp)
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        try {
-                                            val current = mediaPlayer.currentPosition
-                                            mediaPlayer.seekTo(maxOf(0, current - 10000))
-                                            currentPosition = mediaPlayer.currentPosition
-                                        } catch (e: Exception) {}
-                                    },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
-                                ) {
-                                    Icon(Icons.Default.Replay10, "Rewind 10s", tint = Color.White, modifier = Modifier.size(24.dp))
-                                }
-                                
-                                IconButton(
-                                    onClick = {
-                                        try {
-                                            if (mediaPlayer.isPlaying) {
-                                                mediaPlayer.pause()
-                                                isPlaying = false
-                                            } else {
-                                                if (currentPosition >= audioDuration) {
-                                                    mediaPlayer.seekTo(0)
+                                Box(modifier = Modifier.align(Alignment.CenterStart)) {
+                                    var showSpeedMenu by remember { mutableStateOf(false) }
+                                    IconButton(
+                                        onClick = { showSpeedMenu = true },
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Text("${playbackSpeed}x", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    androidx.compose.material3.MaterialTheme(
+                                        colorScheme = androidx.compose.material3.darkColorScheme(
+                                            surface = Color(0xFF222222),
+                                            onSurface = Color.White
+                                        ),
+                                        shapes = androidx.compose.material3.MaterialTheme.shapes.copy(
+                                            extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                        )
+                                    ) {
+                                        androidx.compose.material3.DropdownMenu(
+                                            expanded = showSpeedMenu,
+                                            onDismissRequest = { showSpeedMenu = false },
+                                            modifier = Modifier.height(192.dp).width(64.dp)
+                                        ) {
+                                        listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f).forEach { speed ->
+                                            androidx.compose.material3.DropdownMenuItem(
+                                                modifier = Modifier.height(48.dp),
+                                                contentPadding = PaddingValues(horizontal = 0.dp),
+                                                text = { 
+                                                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                                        Text(
+                                                            "${speed}x", 
+                                                            color = if (playbackSpeed == speed) Cyan400 else Color.White,
+                                                            fontWeight = if (playbackSpeed == speed) FontWeight.Bold else FontWeight.Normal,
+                                                            fontSize = 16.sp
+                                                        ) 
+                                                    }
+                                                },
+                                                onClick = {
+                                                    playbackSpeed = speed
+                                                    showSpeedMenu = false
+                                                    try {
+                                                        if (android.os.Build.VERSION.SDK_INT >= 23) {
+                                                            mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                                                        }
+                                                        mediaPlayer.start()
+                                                        isPlaying = true
+                                                    } catch (e: Exception) {}
                                                 }
-                                                mediaPlayer.start()
-                                                isPlaying = true
-                                            }
-                                        } catch (e: Exception) {}
-                                    },
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(CircleShape)
-                                        .background(Cyan400)
-                                ) {
-                                    Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, "Play/Pause", tint = Color.Black, modifier = Modifier.size(36.dp))
+                                            )
+                                        }
+                                    }
+                                    }
                                 }
 
-                                IconButton(
-                                    onClick = {
-                                        try {
-                                            val current = mediaPlayer.currentPosition
-                                            mediaPlayer.seekTo(minOf(mediaPlayer.duration, current + 10000))
-                                            currentPosition = mediaPlayer.currentPosition
-                                        } catch (e: Exception) {}
-                                    },
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
-                                ) {
-                                    Icon(Icons.Default.Forward10, "Forward 10s", tint = Color.White, modifier = Modifier.size(24.dp))
+                                Box(modifier = Modifier.align(Alignment.Center)) {
+                                    IconButton(
+                                        onClick = {
+                                            try {
+                                                if (mediaPlayer.isPlaying) {
+                                                    mediaPlayer.pause()
+                                                    isPlaying = false
+                                                } else {
+                                                    if (currentPosition >= audioDuration) {
+                                                        mediaPlayer.seekTo(0)
+                                                    }
+                                                    mediaPlayer.start()
+                                                    isPlaying = true
+                                                }
+                                            } catch (e: Exception) {}
+                                        },
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(CircleShape)
+                                            .background(Cyan400)
+                                    ) {
+                                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, "Play/Pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                                    }
                                 }
+
+                            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                            IconButton(
+                                onClick = {
+                                    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                                    if (isLandscape) {
+                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                    } else {
+                                        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.15f))
+                            ) {
+                                Icon(androidx.compose.material.icons.Icons.Default.ScreenRotation, "Rotate", tint = Color.White, modifier = Modifier.size(24.dp))
                             }
+                        } // Close Box
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -636,6 +1195,7 @@ fun FileViewerOverlay(
                             )
                         }
                     }
+                }
                 }
             }
             mimeType == "application/pdf" -> {
@@ -714,6 +1274,7 @@ fun FileViewerOverlay(
         }
 
         // Top App Bar
+        if (!isInPipMode) {
         androidx.compose.animation.AnimatedVisibility(
             visible = showControls,
             enter = androidx.compose.animation.slideInVertically(initialOffsetY = { -it }),
@@ -723,8 +1284,8 @@ fun FileViewerOverlay(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.Black.copy(alpha = 0.4f))
-                    .padding(top = savedStatusBarHeight)
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                    .padding(top = if (isLandscape) 12.dp else (savedStatusBarHeight + 12.dp))
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -753,6 +1314,7 @@ fun FileViewerOverlay(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -1153,6 +1715,7 @@ fun ZoomableContent(
     allowOneFingerPan: Boolean = true,
     onScaleChange: ((Float) -> Unit)? = null,
     onTap: (() -> Unit)? = null,
+    onDoubleTap: ((androidx.compose.ui.geometry.Offset) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -1173,6 +1736,7 @@ fun ZoomableContent(
     }
 
     val currentOnTap by rememberUpdatedState(onTap)
+    val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
     
     Box(
         modifier = modifier
@@ -1182,33 +1746,37 @@ fun ZoomableContent(
                 detectTapGestures(
                     onTap = { currentOnTap?.invoke() },
                     onDoubleTap = { tapOffset ->
-                        coroutineScope.launch {
-                            val targetScale = if (scale.value > 1f) 1f else 2.5f
-                            
-                            if (targetScale == 1f) {
-                                kotlinx.coroutines.joinAll(
-                                    launch { scale.animateTo(1f) },
-                                    launch { offsetX.animateTo(0f) },
-                                    launch { offsetY.animateTo(0f) }
-                                )
-                            } else {
-                                val center = androidx.compose.ui.geometry.Offset(containerSize.width / 2f, containerSize.height / 2f)
-                                val c = tapOffset - center
+                        if (currentOnDoubleTap != null) {
+                            currentOnDoubleTap?.invoke(tapOffset)
+                        } else {
+                            coroutineScope.launch {
+                                val targetScale = if (scale.value > 1f) 1f else 2.5f
                                 
-                                val actualZoom = targetScale / scale.value
-                                val targetOffsetX = offsetX.value * actualZoom + c.x * (1 - actualZoom)
-                                val targetOffsetY = offsetY.value * actualZoom + c.y * (1 - actualZoom)
-                                
-                                val maxX = (containerSize.width * (targetScale - 1)) / 2f
-                                val maxY = (containerSize.height * (targetScale - 1)) / 2f
-                                
-                                kotlinx.coroutines.joinAll(
-                                    launch { scale.animateTo(targetScale) },
-                                    launch { offsetX.animateTo(targetOffsetX.coerceIn(-maxX, maxX)) },
-                                    launch { offsetY.animateTo(targetOffsetY.coerceIn(-maxY, maxY)) }
-                                )
+                                if (targetScale == 1f) {
+                                    kotlinx.coroutines.joinAll(
+                                        launch { scale.animateTo(1f) },
+                                        launch { offsetX.animateTo(0f) },
+                                        launch { offsetY.animateTo(0f) }
+                                    )
+                                } else {
+                                    val center = androidx.compose.ui.geometry.Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                    val c = tapOffset - center
+                                    
+                                    val actualZoom = targetScale / scale.value
+                                    val targetOffsetX = offsetX.value * actualZoom + c.x * (1 - actualZoom)
+                                    val targetOffsetY = offsetY.value * actualZoom + c.y * (1 - actualZoom)
+                                    
+                                    val maxX = (containerSize.width * (targetScale - 1)) / 2f
+                                    val maxY = (containerSize.height * (targetScale - 1)) / 2f
+                                    
+                                    kotlinx.coroutines.joinAll(
+                                        launch { scale.animateTo(targetScale) },
+                                        launch { offsetX.animateTo(targetOffsetX.coerceIn(-maxX, maxX)) },
+                                        launch { offsetY.animateTo(targetOffsetY.coerceIn(-maxY, maxY)) }
+                                    )
+                                }
+                                onScaleChange?.invoke(targetScale)
                             }
-                            onScaleChange?.invoke(targetScale)
                         }
                     }
                 )
@@ -1387,5 +1955,218 @@ private fun DocumentViewer(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun VerticalSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    interactive: Boolean = true,
+    textPosition: String = "bottom"
+) {
+    var height by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
+    
+    val textLabel = @Composable {
+        Text(
+            text = "${(value * 100).toInt()}%",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
+    }
+
+    val sliderCore = @Composable {
+        Column(
+            modifier = modifier.width(48.dp).height(240.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 8.dp))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .width(24.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.1f))
+                    .onSizeChanged { height = it.height }
+                    .then(
+                        if (interactive) Modifier.pointerInput(Unit) {
+                            detectDragGestures(
+                                onDrag = { change, _ ->
+                                    if (height > 0) {
+                                        val newValue = 1f - (change.position.y / height).coerceIn(0f, 1f)
+                                        onValueChange(newValue)
+                                    }
+                                }
+                            )
+                        } else Modifier
+                    )
+                    .then(
+                        if (interactive) Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    if (height > 0) {
+                                        val newValue = 1f - (offset.y / height).coerceIn(0f, 1f)
+                                        onValueChange(newValue)
+                                    }
+                                }
+                            )
+                        } else Modifier
+                    )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(value)
+                        .align(Alignment.BottomCenter)
+                        .background(Cyan400)
+                )
+            }
+            if (textPosition == "bottom") {
+                Box(modifier = Modifier.padding(top = 12.dp)) {
+                    textLabel()
+                }
+            } else {
+                Spacer(modifier = Modifier.height(30.dp))
+            }
+        }
+    }
+
+    if (textPosition == "left") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.padding(end = 16.dp)) { textLabel() }
+            sliderCore()
+        }
+    } else if (textPosition == "right") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            sliderCore()
+            Box(modifier = Modifier.padding(start = 16.dp)) { textLabel() }
+        }
+    } else {
+        sliderCore()
+    }
+}
+
+@Composable
+fun GestureIndicator(icon: androidx.compose.ui.graphics.vector.ImageVector, value: Float) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .height(140.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(value)
+                    .background(Cyan400)
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon, 
+                contentDescription = null, 
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "${(value * 100).toInt()}%",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun MediaSessionHelper(
+    context: android.content.Context,
+    title: String,
+    isPlaying: Boolean,
+    duration: Long,
+    position: Long,
+    onPlay: () -> Unit,
+    onPause: () -> Unit,
+    onSeekTo: (Long) -> Unit
+) {
+    val mediaSession = androidx.compose.runtime.remember(context) {
+        android.media.session.MediaSession(context, "FileViewerMedia").apply {
+            val sessionIntent = android.content.Intent(context, com.example.MainActivity::class.java).apply {
+                flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                context,
+                0,
+                sessionIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            setSessionActivity(pendingIntent)
+        }
+    }
+    
+    androidx.compose.runtime.DisposableEffect(mediaSession) {
+        mediaSession.setCallback(object : android.media.session.MediaSession.Callback() {
+            override fun onPlay() { onPlay() }
+            override fun onPause() { onPause() }
+            override fun onSeekTo(pos: Long) { onSeekTo(pos) }
+            override fun onRewind() {
+                val newPos = maxOf(0L, position - 10000L)
+                onSeekTo(newPos)
+            }
+            override fun onFastForward() {
+                val newPos = minOf(duration, position + 10000L)
+                onSeekTo(newPos)
+            }
+        })
+        mediaSession.isActive = true
+        onDispose {
+            mediaSession.isActive = false
+            mediaSession.release()
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(title, duration) {
+        val metadataBuilder = android.media.MediaMetadata.Builder()
+            .putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title)
+            .putString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_TITLE, title)
+            .putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, duration)
+        mediaSession.setMetadata(metadataBuilder.build())
+    }
+
+    androidx.compose.runtime.LaunchedEffect(isPlaying, position) {
+        val stateBuilder = android.media.session.PlaybackState.Builder()
+            .setActions(
+                android.media.session.PlaybackState.ACTION_PLAY or
+                android.media.session.PlaybackState.ACTION_PAUSE or
+                android.media.session.PlaybackState.ACTION_PLAY_PAUSE or
+                android.media.session.PlaybackState.ACTION_SEEK_TO
+            )
+            .setState(
+                if (isPlaying) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_PAUSED,
+                position,
+                1.0f
+            )
+        mediaSession.setPlaybackState(stateBuilder.build())
     }
 }

@@ -234,7 +234,6 @@ class MainActivity : ComponentActivity() {
                 val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
                 val canNavigateBackTab by libraryViewModel.canNavigateBackTab.collectAsState()
                 androidx.activity.compose.BackHandler(enabled = (currentTab != "dashboard" || canNavigateBackTab) && authState is AuthState.Success) {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     if (!libraryViewModel.navigateBackTab()) {
                         if (currentTab != "dashboard") {
                             libraryViewModel.setCurrentTab("dashboard")
@@ -558,6 +557,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleIntent(intent)
     }
 
@@ -773,7 +773,6 @@ private fun MainAppContent(
         
         LaunchedEffect(viewingItem) {
             if (viewingItem != null) {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             }
         }
 
@@ -788,7 +787,6 @@ private fun MainAppContent(
                 com.example.ui.screens.FileViewerOverlay(
                     item = item,
                     onClose = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         libraryViewModel.setViewingItem(null) 
                     },
                     onShare = { libraryViewModel.shareFile(activity, it, driveViewModel) },

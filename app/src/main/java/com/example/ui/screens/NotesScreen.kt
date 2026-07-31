@@ -283,7 +283,6 @@ fun NotesScreen(
                                     isSelectionMode = isSelectionMode,
                                     isSelected = selectedNotes.contains(note.id),
                                     onClick = {
-                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                         if (isSelectionMode) {
                                             val newSelection = selectedNotes.toMutableSet()
                                             if (newSelection.contains(note.id)) newSelection.remove(note.id) else newSelection.add(note.id)
@@ -474,15 +473,12 @@ fun NotesScreen(
                 onContentChange = { noteContent = it },
                 isNewNote = true,
                 onBack = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     showAddNoteDialog = false 
                 },
                 onCancel = { 
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     showAddNoteDialog = false 
                 },
                 onSave = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     if (noteTitle.trim().isEmpty()) {
                         android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
                     } else {
@@ -513,15 +509,12 @@ fun NotesScreen(
                     onContentChange = { noteContent = it },
                     isNewNote = false,
                     onBack = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showEditNoteDialog = false 
                     },
                     onCancel = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showEditNoteDialog = false 
                     },
                     onSave = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (noteTitle.trim().isEmpty()) {
                             android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
                         } else {
@@ -1165,7 +1158,6 @@ fun NotesHeader(
         val isSearchPressed by searchInteractionSource.collectIsPressedAsState()
         val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
         LaunchedEffect(isSearchPressed) {
-            if (isSearchPressed) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
         }
         OutlinedTextField(
             value = searchQuery,
@@ -1299,7 +1291,6 @@ fun VoiceNoteCard(
             ) {
                 IconButton(
                     onClick = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (!fileExists && note.driveFileId != null && !isDownloading) {
                             onDownloadRequest()
                             // Download
@@ -1323,7 +1314,6 @@ fun VoiceNoteCard(
                                                 progress = 0f
                                                 currentPosition = 0
                                                 showProgressBar = false
-                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                             }
                                         }
                                     }

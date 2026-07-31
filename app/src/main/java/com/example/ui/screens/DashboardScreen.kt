@@ -532,7 +532,6 @@ fun DashboardScreen(
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(8.dp))
                                             .clickable {
-                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 searchQuery = "$tag "
                                             }
                                             .padding(horizontal = 8.dp, vertical = 8.dp),
@@ -615,7 +614,6 @@ fun DashboardScreen(
                                             if (!isOnline.value) {
                                                 android.widget.Toast.makeText(context, "Please connect to internet to open this file", android.widget.Toast.LENGTH_SHORT).show()
                                             } else {
-                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 driveViewModel.downloadFileFromDrive(context, libraryViewModel, file.driveFileId, file.title, file.id) { }
                                             }
                                         } else {
@@ -751,7 +749,6 @@ fun DashboardScreen(
                         .background(if (authState is AuthState.Success || activeAccount != null) Cyan400 else Slate800)
                         .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
                         .clickable { 
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             onTabSelected("settings")
                         },
                     contentAlignment = Alignment.Center
@@ -803,7 +800,6 @@ fun DashboardScreen(
                     .height(48.dp)
                     .glassMorphic(CircleShape)
                     .clickable { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         libraryViewModel.isSearchActive.value = true 
                     }
                     .padding(horizontal = 16.dp),
@@ -1475,7 +1471,6 @@ fun DashboardScreen(
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
                             onClick = {
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 if (voiceNote1 != null) {
                                     showAudioPlayDialogForNote = voiceNote1
                                 } else if (textNote1 != null) {
@@ -1510,7 +1505,6 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote1 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote1, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); showAudioPlayDialogForNote = voiceNote1 })
                                 } else {
                                     Text(
                                         text = textNote1?.content?.ifBlank { "No content" } ?: "",
@@ -1571,7 +1565,6 @@ fun DashboardScreen(
                         FrostedCard(
                             modifier = Modifier.fillMaxSize(),
                             onClick = {
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 if (voiceNote2 != null) {
                                     showAudioPlayDialogForNote = voiceNote2
                                 } else if (textNote2 != null) {
@@ -1606,7 +1599,6 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote2 != null) {
-                                    PinnedVoiceNotePlayer(note = voiceNote2, driveViewModel = driveViewModel, libraryViewModel = libraryViewModel, isOnline = isOnline.value, onClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); showAudioPlayDialogForNote = voiceNote2 })
                                 } else {
                                     Text(
                                         text = textNote2?.content?.ifBlank { "No content" } ?: "",
@@ -1665,7 +1657,6 @@ fun DashboardScreen(
                     driveViewModel = driveViewModel,
                     libraryViewModel = libraryViewModel,
                     onDismiss = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showAudioPlayDialogForNote = null 
                     }
                 )
@@ -1865,7 +1856,6 @@ fun DashboardScreen(
                                     if (!isOnline.value) {
                                         android.widget.Toast.makeText(context, "Please connect to internet to open this file", android.widget.Toast.LENGTH_SHORT).show()
                                     } else {
-                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                         driveViewModel.downloadFileFromDrive(context, libraryViewModel, file.driveFileId, file.title, file.id) { }
                                     }
                                 } else {
@@ -2081,17 +2071,14 @@ fun DashboardScreen(
                     onContentChange = { noteContent = it },
                     isNewNote = false,
                     onBack = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showEditNoteDialog = false 
                         libraryViewModel.setEditingNote(false)
                     },
                     onCancel = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showEditNoteDialog = false 
                         libraryViewModel.setEditingNote(false)
                     },
                     onSave = {
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (noteTitle.trim().isEmpty()) {
                             android.widget.Toast.makeText(context, "Heading is mandatory", android.widget.Toast.LENGTH_SHORT).show()
                         } else {
@@ -2295,7 +2282,6 @@ fun BottomNavBar(
                     .clip(CircleShape)
                     .background(if (isDashboard) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
                     .clickable { 
-                        if (!isDashboard) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onTabSelected("dashboard") 
                     },
                 contentAlignment = Alignment.Center
@@ -2314,7 +2300,6 @@ fun BottomNavBar(
                     .clip(CircleShape)
                     .background(if (isLibrary) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
                     .clickable { 
-                        if (!isLibrary) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onTabSelected("library") 
                     },
                 contentAlignment = Alignment.Center
@@ -2333,7 +2318,6 @@ fun BottomNavBar(
                     .clip(CircleShape)
                     .background(if (isNotes) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
                     .clickable { 
-                        if (!isNotes) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onTabSelected("notes") 
                     },
                 contentAlignment = Alignment.Center
@@ -2352,7 +2336,6 @@ fun BottomNavBar(
                     .clip(CircleShape)
                     .background(if (isCalendar) Cyan500.copy(alpha = 0.15f) else Color.Transparent)
                     .clickable { 
-                        if (!isCalendar) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onTabSelected("calendar") 
                     },
                 contentAlignment = Alignment.Center
@@ -2723,7 +2706,6 @@ fun AudioPlayDialog(
                         prepare()
                         duration = this.duration
                         setOnCompletionListener {
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             isPlaying = false
                             progress = 0f
                             currentPosition = 0
@@ -2731,7 +2713,6 @@ fun AudioPlayDialog(
                     }
                 }
                 mediaPlayer?.start()
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 isPlaying = true
             } catch (e: Exception) {
                 android.widget.Toast.makeText(context, "Error playing audio", android.widget.Toast.LENGTH_SHORT).show()
@@ -2742,7 +2723,6 @@ fun AudioPlayDialog(
 
     val pauseAudio = {
         if (isPlaying) {
-            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             mediaPlayer?.pause()
             isPlaying = false
         }

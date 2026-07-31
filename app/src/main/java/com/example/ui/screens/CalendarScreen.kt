@@ -190,7 +190,6 @@ fun CalendarScreen(
                 ) {
                     Text(text = "REMINDERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
                     IconButton(onClick = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showAddReminderDialog = true 
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Reminder", tint = Cyan400)
@@ -276,7 +275,6 @@ fun CalendarScreen(
                 ) {
                     Text(text = "DAY COUNTERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
                     IconButton(onClick = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showAddCounterDialog = true 
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Counter", tint = Cyan400)
@@ -354,7 +352,6 @@ fun CalendarScreen(
                 ) {
                     Text(text = "STOPWATCHES", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
                     IconButton(onClick = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showAddStopwatchDialog = true 
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Stopwatch", tint = Cyan400)
@@ -434,7 +431,6 @@ fun CalendarScreen(
                 ) {
                     Text(text = "COUNTDOWN TIMERS", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
                     IconButton(onClick = { 
-                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         showAddTimerDialog = true 
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Timer", tint = Cyan400)

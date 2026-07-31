@@ -142,7 +142,6 @@ fun LibraryScreen(
             isSelectionMode = false
             selectedFiles = emptySet()
         } else {
-            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             libraryViewModel.navigateUp()
         }
     }
@@ -397,7 +396,6 @@ fun LibraryScreen(
                                             }
                                         } else {
                                             if (file.isFolder) {
-                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 libraryViewModel.setCurrentFolderId(file.id)
                                             } else {
                                                 if (downloadingFiles[file.id] == null) {
@@ -408,7 +406,6 @@ fun LibraryScreen(
                                                             showSyncCompleteMessage = true
                                                             coroutineScope.launch { kotlinx.coroutines.delay(3000); showSyncCompleteMessage = false }
                                                         } else {
-                                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                             driveViewModel.downloadFileFromDrive(context, libraryViewModel, file.driveFileId, file.title, file.id) { }
                                                         }
                                                     } else {
@@ -1157,7 +1154,6 @@ fun LibraryHeader(
                 ) {
                     if (currentFolderId != null) {
                         IconButton(onClick = { 
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             libraryViewModel.navigateUp() 
                         }) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
@@ -1224,7 +1220,6 @@ fun LibraryHeader(
                                     modifier = Modifier
                                         .clickable {
                                             if (!isLast) {
-                                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                                 libraryViewModel.setCurrentFolderId(segment.id)
                                             }
                                         }
@@ -1269,7 +1264,6 @@ fun LibraryHeader(
         val isSearchPressed by searchInteractionSource.collectIsPressedAsState()
         val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
         LaunchedEffect(isSearchPressed) {
-            if (isSearchPressed) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
         }
         OutlinedTextField(
             value = searchQuery,

@@ -240,7 +240,6 @@ fun ExpandableFab(
         val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
         FloatingActionButton(
             onClick = { 
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 setExpandedValue(!isExpandedValue) 
             },
             containerColor = MaterialTheme.colorScheme.primary,
@@ -290,7 +289,6 @@ private fun FabMenuItem(
                 shape = RoundedCornerShape(percent = 50)
             )
             .clickable(onClick = {
-                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 onClick()
             })
             .padding(horizontal = 20.dp)

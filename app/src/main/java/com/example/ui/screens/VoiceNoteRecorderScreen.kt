@@ -125,7 +125,6 @@ fun VoiceNoteRecorderScreen(
                                         .clip(androidx.compose.foundation.shape.CircleShape)
                                         .background(if (isRecording) MaterialTheme.colorScheme.error.copy(alpha = 0.2f) else Cyan400.copy(alpha = 0.2f))
                                         .clickable {
-                                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                             if (isRecording) {
                                                 audioRecorder.stopRecording()
                                                 isRecording = false
