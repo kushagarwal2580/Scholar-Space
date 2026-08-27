@@ -40,7 +40,8 @@ fun SettingsScreen(
     libraryViewModel: LibraryViewModel,
     driveViewModel: DriveViewModel? = null,
     innerPadding: PaddingValues = PaddingValues(0.dp),
-    onBack: (() -> Unit)? = null
+    onBack: (() -> Unit)? = null,
+    onLogout: (() -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val fallbackFlow = remember { kotlinx.coroutines.flow.MutableStateFlow<AuthState>(AuthState.Idle) }
@@ -116,16 +117,21 @@ fun SettingsScreen(
             message = "Are you sure you want to log out?",
             confirmText = "Log Out",
             onConfirm = {
-                // Launch a coroutine to handle sign out and data wiping
-                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                    // Sign out from Google Drive and Identity
-                    driveViewModel?.signOut(context)
-                    authViewModel?.signOut(context)
-                    
-                    // Small delay to allow Google Play Services to process revocation
-                    kotlinx.coroutines.delay(1000)
-                    
-                    libraryViewModel.clearFiles(context)
+                showLogoutDialog = false
+                if (onLogout != null) {
+                    onLogout()
+                } else {
+                    // Launch a coroutine to handle sign out and data wiping
+                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        // Sign out from Google Drive and Identity
+                        driveViewModel?.signOut(context)
+                        authViewModel?.signOut(context)
+                        
+                        // Small delay to allow Google Play Services to process revocation
+                        kotlinx.coroutines.delay(1000)
+                        
+                        libraryViewModel.clearFiles(context)
+                    }
                 }
             },
             onDismiss = { showLogoutDialog = false }

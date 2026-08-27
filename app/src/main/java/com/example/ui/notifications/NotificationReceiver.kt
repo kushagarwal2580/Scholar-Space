@@ -122,7 +122,7 @@ class NotificationReceiver : BroadcastReceiver() {
             return
         }
 
-        if (activeVm != null) {
+        if (activeVm != null && activeVm.isAppInForeground) {
             // App is open, delegate to the active ViewModel
             when (action) {
                 "com.example.ACTION_TOGGLE_STOPWATCH" -> {

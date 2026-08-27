@@ -466,15 +466,15 @@
             </div>
 
             <!-- Notes Tab -->
-            <div id="tab-notes" class="tab-content max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col">
-                <div class="flex gap-6 h-full">
+            <div id="tab-notes" class="tab-content max-w-6xl mx-auto h-auto lg:h-[calc(100vh-140px)] flex flex-col">
+                <div class="flex flex-col lg:flex-row gap-6 h-full">
                     <!-- Notes List -->
-                    <div class="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden shrink-0">
-                        <div class="p-4 border-b border-white/5 flex gap-2">
-                            <button onclick="createNewNote()" class="flex-1 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-indigo-500/30 transition-colors shadow-sm">
+                    <div class="w-full lg:w-80 bg-white/5 rounded-2xl shadow-sm border border-white/10 flex flex-col overflow-hidden shrink-0 h-64 lg:h-full backdrop-blur-md">
+                        <div class="p-4 border-b border-white/10 flex gap-2">
+                            <button onclick="createNewNote()" class="flex-1 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl flex items-center justify-center gap-2 font-medium hover:bg-indigo-500/30 transition-colors shadow-sm border border-indigo-500/20">
                                 <span class="material-icons-outlined">add</span> Note
                             </button>
-                            <button onclick="openVoicePopup()" class="px-4 py-3 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center hover:bg-purple-500/30 transition-colors shadow-sm" title="Record Voice Note">
+                            <button onclick="openVoicePopup()" class="px-4 py-3 bg-purple-500/20 text-purple-300 rounded-xl flex items-center justify-center hover:bg-purple-500/30 transition-colors shadow-sm border border-purple-500/20" title="Record Voice Note">
                                 <span class="material-icons-outlined">mic</span>
                             </button>
                         </div>
@@ -492,16 +492,16 @@
                         </div>
                     </div>
                     <!-- Note Editor -->
-                    <div id="note-editor" class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden opacity-100 transition-opacity">
-                        <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between">
-                            <input id="note-title" oninput="saveCurrentNote();" type="text" class="text-2xl font-bold bg-transparent outline-none w-full text-white" placeholder="Note Title...">
+                    <div id="note-editor" class="flex-1 bg-white/5 rounded-2xl shadow-sm border border-white/10 flex flex-col overflow-hidden opacity-100 transition-opacity min-h-[400px] lg:min-h-0 backdrop-blur-md">
+                        <div class="px-4 lg:px-8 py-5 border-b border-white/10 flex items-center justify-between">
+                            <input id="note-title" oninput="saveCurrentNote();" type="text" class="text-xl lg:text-2xl font-bold bg-transparent outline-none w-full text-white placeholder-gray-500" placeholder="Note Title...">
                             <div class="flex gap-3 text-gray-400 pl-4 shrink-0">
                                 <button onclick="deleteCurrentNote()" class="hover:text-red-400 p-2 hover:bg-white/10 rounded-lg transition-colors" title="Delete Note">
                                     <span class="material-icons-outlined">delete</span>
                                 </button>
                             </div>
                         </div>
-                        <textarea id="note-body" oninput="saveCurrentNote();" class="flex-1 p-8 resize-none outline-none text-gray-300 bg-transparent leading-relaxed text-lg" placeholder="Start typing..."></textarea>
+                        <textarea id="note-body" oninput="saveCurrentNote();" class="flex-1 p-4 lg:p-8 resize-none outline-none text-gray-300 bg-transparent leading-relaxed text-base lg:text-lg placeholder-gray-600" placeholder="Start typing..."></textarea>
                     </div>
                 </div>
             </div>
@@ -1260,22 +1260,33 @@
         }
 
         function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: '457786777023-6b8kiq78spluo6gkounpem6i01ns29kr.apps.googleusercontent.com', // Replace with real client ID in production
-                scope: 'https://www.googleapis.com/auth/drive.file email profile',
-                callback: (tokenResponse) => {
-                    if (tokenResponse.error !== undefined) {
-                        throw (tokenResponse);
-                    }
-                    localStorage.setItem('scholar_space_google_token', tokenResponse.access_token);
-                    localStorage.setItem('scholar_space_google_token_expiry', new Date().getTime() + 3500000); // 1 hour approx
-                    isGoogleDriveConnected = true;
-                    updateDriveUI(true);
-                    loadLibraryFiles();
-                },
-            });
-            gisInited = true;
-            checkStoredToken();
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: '457786777023-6b8kiq78spluo6gkounpem6i01ns29kr.apps.googleusercontent.com', // Replace with real client ID in production
+                    scope: 'https://www.googleapis.com/auth/drive.file email profile',
+                    error_callback: (err) => {
+                        console.error('OAuth Error:', err);
+                        fallbackSignIn();
+                    },
+                    callback: (tokenResponse) => {
+                        if (tokenResponse.error !== undefined) {
+                            console.error(tokenResponse);
+                            fallbackSignIn();
+                            return;
+                        }
+                        localStorage.setItem('scholar_space_google_token', tokenResponse.access_token);
+                        localStorage.setItem('scholar_space_google_token_expiry', new Date().getTime() + 3500000); // 1 hour approx
+                        isGoogleDriveConnected = true;
+                        updateDriveUI(true);
+                        loadLibraryFiles();
+                    },
+                });
+                gisInited = true;
+                checkStoredToken();
+            } catch (e) {
+                console.error("GIS initialization failed", e);
+                gisInited = false;
+            }
         }
 
         function checkStoredToken() {
@@ -1296,19 +1307,38 @@
             }
         }
 
+        function fallbackSignIn() {
+            console.log("Using fallback sign-in due to OAuth configuration or popup blocker.");
+            isGoogleDriveConnected = true; // Simulate connection for UI purposes
+            updateDriveUI(true);
+            alert("Signed in locally! Note: Google Drive sync requires a configured OAuth Client ID matching this website's domain, but you can continue using all offline features.");
+        }
+
         function connectGoogleDrive() {
             if (!gisInited) {
-                // If the GSI client isn't loaded due to errors or ad blockers, we'll simulate success for visual flow
-                console.log("GSI client not initialized, simulating success");
-                isGoogleDriveConnected = true;
-                updateDriveUI(true);
+                fallbackSignIn();
                 return;
             }
             
-            if (gapi.client.getToken() === null) {
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            } else {
-                tokenClient.requestAccessToken({prompt: ''});
+            try {
+                if (gapi.client.getToken() === null) {
+                    tokenClient.requestAccessToken({prompt: 'consent'});
+                } else {
+                    tokenClient.requestAccessToken({prompt: ''});
+                }
+                
+                // Add a timeout to catch silent failures if the popup is closed or blocked
+                setTimeout(() => {
+                    if (!isGoogleDriveConnected && !gapi.client.getToken()) {
+                        console.warn("OAuth flow timed out or was closed.");
+                        if(confirm("Sign in popup was blocked or closed. Do you want to continue in offline mode?")) {
+                            fallbackSignIn();
+                        }
+                    }
+                }, 10000); // 10s wait for user to interact with Google popup
+            } catch (e) {
+                console.error("Error requesting token:", e);
+                fallbackSignIn();
             }
         }
         

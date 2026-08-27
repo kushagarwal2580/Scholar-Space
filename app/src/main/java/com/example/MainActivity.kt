@@ -58,6 +58,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 
 import android.content.pm.PackageManager
+import kotlinx.coroutines.launch
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.LaunchedEffect
@@ -364,123 +365,193 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                var isLoggingOut by androidx.compose.runtime.remember { mutableStateOf(false) }
+                val isLoggedIn = authState is AuthState.Success
+
+                LaunchedEffect(isLoggedIn) {
+                    if (!isLoggedIn) {
+                        isLoggingOut = false
+                    }
+                }
+
                 com.example.ui.components.GlassBackground(
                     modifier = Modifier.fillMaxSize(),
                     drawBackgroundAndCircles = true
                 ) {
+                    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+                    val logoutOffset by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (isLoggingOut) -1f else 0f,
+                        animationSpec = if (!isLoggingOut && !isLoggedIn) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(
+                            durationMillis = 1200,
+                            easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                        ),
+                        label = "logoutOffset",
+                        finishedListener = {
+                            if (it == -1f) {
+                                driveViewModel.signOut(this@MainActivity)
+                                authViewModel.signOut(this@MainActivity)
+                                libraryViewModel.clearFiles(this@MainActivity)
+                            }
+                        }
+                    )
+
+                    var syncFinished by androidx.compose.runtime.remember { mutableStateOf(true) }
+                    val isOverlayActive = showSyncScreen || isSyncing
+
+                    androidx.compose.runtime.LaunchedEffect(isOverlayActive) {
+                        if (isOverlayActive) {
+                            syncFinished = false
+                        }
+                    }
+
+                    val syncOffset by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (!isOverlayActive) -1f else 0f,
+                        animationSpec = if (isOverlayActive) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(
+                            durationMillis = 1200,
+                            easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                        ),
+                        label = "syncOffset",
+                        finishedListener = {
+                            if (it == -1f) {
+                                syncFinished = true
+                            }
+                        }
+                    )
+
+                    val splashOffset by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (hasStartedDismissal) -1f else 0f,
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = 1200,
+                            easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+                        ),
+                        label = "splashOffset",
+                        finishedListener = { if (it == -1f) splashFinished = true }
+                    )
+
+                    val splashRevealProgress = kotlin.math.abs(splashOffset).coerceIn(0f, 1f)
+                    val syncRevealProgress = kotlin.math.abs(syncOffset).coerceIn(0f, 1f)
+                    val logoutRevealProgress = kotlin.math.abs(logoutOffset).coerceIn(0f, 1f)
+
+                    val splashScale = if (!splashFinished && hasStartedDismissal) 0.94f + 0.06f * splashRevealProgress else 1f
+                    val splashAlpha = if (!splashFinished && hasStartedDismissal) 0.3f + 0.7f * splashRevealProgress else 1f
+
                     Box(modifier = Modifier.fillMaxSize()) {
-                        if (authState !is AuthState.Success) {
-                            // Not logged in or loading
-                            if (hasStartedDismissal || (minTimeElapsed && authState !is AuthState.Loading)) {
-                                androidx.compose.animation.Crossfade(targetState = true) { _ ->
-                                    com.example.ui.screens.AuthScreen(authViewModel = authViewModel)
+                        // Base Stack wrapper that applies splash screen reveal zoom/fade
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = splashScale
+                                    scaleY = splashScale
+                                    alpha = splashAlpha
                                 }
-                            }
-                        } else {
-                            // User is successfully authenticated
-                            val authSuccess = authState as AuthState.Success
-                            val isDriveConnected by driveViewModel.isConnected.collectAsState()
-                            
-                            val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                                androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-                            ) { result ->
-                                driveViewModel.handleSignInResult(this@MainActivity, result.data)
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                            ) {
-                                if (!authSuccess.hasDrivePermission && !isDriveConnected) {
-                                    com.example.ui.screens.ConnectDriveScreen(
-                                        onConnectClick = {
-                                            googleSignInLauncher.launch(driveViewModel.getSignInIntent(this@MainActivity))
-                                        }
-                                    )
-                                } else {
-                                    MainAppContent(
-                                        currentTab = currentTab,
-                                        isImeVisible = isImeVisible,
-                                        viewingItem = viewingItem,
-                                        authViewModel = authViewModel,
-                                        libraryViewModel = libraryViewModel,
-                                        driveViewModel = driveViewModel,
-                                        activity = this@MainActivity
-                                    )
+                        ) {
+                            // -------------------------------------------------------------
+                            // LAYER 1: Logged-in Content (MainAppContent / ConnectDriveScreen)
+                            // -------------------------------------------------------------
+                            val showMainContent = isLoggedIn && !isLoggingOut
+                            if (showMainContent) {
+                                val googleSignInLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                                    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                                ) { result ->
+                                    driveViewModel.handleSignInResult(this@MainActivity, result.data)
+                                }
+                                val isDriveConnected by driveViewModel.isConnected.collectAsState()
+                                val authSuccess = authState as? AuthState.Success
+
+                                val mainScale = when {
+                                    isLoggingOut -> 0.94f + 0.06f * (1f - logoutRevealProgress)
+                                    !syncFinished && !isOverlayActive -> 0.94f + 0.06f * syncRevealProgress
+                                    else -> 1f
+                                }
+                                val mainAlpha = when {
+                                    isLoggingOut -> 0.3f + 0.7f * (1f - logoutRevealProgress)
+                                    !syncFinished && !isOverlayActive -> 0.3f + 0.7f * syncRevealProgress
+                                    else -> 1f
                                 }
 
-                                // Syncing Screen Overlay with slide-up out animation
-                                var syncFinished by androidx.compose.runtime.remember { mutableStateOf(true) }
-                                val isOverlayActive = showSyncScreen || isSyncing
-                                
-                                androidx.compose.runtime.LaunchedEffect(isOverlayActive) {
-                                    if (isOverlayActive) {
-                                        syncFinished = false
-                                    }
-                                }
-                                
-                                val syncOffset by androidx.compose.animation.core.animateFloatAsState(
-                                    targetValue = if (!isOverlayActive) -1f else 0f,
-                                    animationSpec = if (isOverlayActive) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(
-                                        durationMillis = 1000,
-                                        easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-                                    ),
-                                    label = "syncOffset",
-                                    finishedListener = { 
-                                        if (it == -1f) {
-                                            syncFinished = true
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = mainScale
+                                            scaleY = mainScale
+                                            alpha = mainAlpha
                                         }
-                                    }
-                                )
-                                val syncAlpha by androidx.compose.animation.core.animateFloatAsState(
-                                    targetValue = if (!isOverlayActive) 0f else 1f,
-                                    animationSpec = if (isOverlayActive) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(500),
-                                    label = "syncAlpha"
-                                )
-
-                                if (!syncFinished || isOverlayActive) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                translationY = syncOffset * size.height
-                                                alpha = syncAlpha
-                                            }
-                                    ) {
-                                        com.example.ui.screens.SyncingScreen(
-                                            onFinished = {
-                                                showSyncScreen = false
-                                                authViewModel.setSyncing(false)
+                                ) {
+                                    if (authSuccess != null && !authSuccess.hasDrivePermission && !isDriveConnected) {
+                                        com.example.ui.screens.ConnectDriveScreen(
+                                            onConnectClick = {
+                                                googleSignInLauncher.launch(driveViewModel.getSignInIntent(this@MainActivity))
                                             }
                                         )
+                                    } else {
+                                        MainAppContent(
+                                            currentTab = currentTab,
+                                            isImeVisible = isImeVisible,
+                                            viewingItem = viewingItem,
+                                            authViewModel = authViewModel,
+                                            libraryViewModel = libraryViewModel,
+                                            driveViewModel = driveViewModel,
+                                            activity = this@MainActivity,
+                                            onLogout = { isLoggingOut = true }
+                                        )
                                     }
+
+                                    // Syncing Screen Overlay
+                                    if (!syncFinished || isOverlayActive) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    val actualSyncOffset = if (isOverlayActive) 0f else syncOffset
+                                                    translationY = actualSyncOffset * size.height
+                                                    alpha = 1f
+                                                }
+                                        ) {
+                                            com.example.ui.screens.SyncingScreen(
+                                                onFinished = {
+                                                    showSyncScreen = false
+                                                    authViewModel.setSyncing(false)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // -------------------------------------------------------------
+                            // LAYER 2: AuthScreen (Sign-In Page)
+                            // -------------------------------------------------------------
+                            val showAuthScreen = !isLoggedIn || isLoggingOut
+                            if (showAuthScreen) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            if (isLoggingOut) {
+                                                translationY = (1f + logoutOffset) * -size.height
+                                            } else {
+                                                translationY = 0f
+                                            }
+                                        }
+                                ) {
+                                    com.example.ui.screens.AuthScreen(authViewModel = authViewModel)
                                 }
                             }
                         }
 
-                        // Overlay the beautiful, animated Splash Screen
-                        val splashOffset by androidx.compose.animation.core.animateFloatAsState(
-                            targetValue = if (hasStartedDismissal) -1f else 0f,
-                            animationSpec = androidx.compose.animation.core.tween(
-                                durationMillis = 1500,
-                                easing = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
-                            ),
-                            label = "splashOffset",
-                            finishedListener = { if (it == -1f) splashFinished = true }
-                        )
-                        val splashAlpha by androidx.compose.animation.core.animateFloatAsState(
-                            targetValue = if (hasStartedDismissal) 0f else 1f,
-                            animationSpec = androidx.compose.animation.core.tween(500),
-                            label = "splashAlpha"
-                        )
-
+                        // -------------------------------------------------------------
+                        // LAYER 3: Startup Splash Screen
+                        // -------------------------------------------------------------
                         if (!splashFinished) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .graphicsLayer {
                                         translationY = splashOffset * size.height
-                                        alpha = splashAlpha
+                                        alpha = 1f
                                     }
                             ) {
                                 ScholarSpaceSplashScreen()
@@ -644,7 +715,8 @@ private fun MainAppContent(
     authViewModel: AuthViewModel,
     libraryViewModel: LibraryViewModel,
     driveViewModel: DriveViewModel,
-    activity: MainActivity
+    activity: MainActivity,
+    onLogout: (() -> Unit)? = null
 ) {
         val isFabExpanded by libraryViewModel.isFabExpanded.collectAsState()
         val isEditingNote by libraryViewModel.isEditingNote.collectAsState()
@@ -688,7 +760,8 @@ private fun MainAppContent(
                                     libraryViewModel = libraryViewModel,
                                     driveViewModel = driveViewModel,
                                     innerPadding = customInnerPadding,
-                                    onBack = { libraryViewModel.setCurrentTab("dashboard") }
+                                    onBack = { libraryViewModel.setCurrentTab("dashboard") },
+                                    onLogout = onLogout
                                 )
                                 "dashboard" -> com.example.ui.screens.DashboardScreen(
                                     authViewModel = authViewModel,

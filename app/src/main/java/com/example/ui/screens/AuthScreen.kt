@@ -90,7 +90,7 @@ fun AuthScreen(authViewModel: AuthViewModel) {
 
     GlassBackground(
         modifier = Modifier.fillMaxSize(),
-        drawBackgroundAndCircles = false
+        drawBackgroundAndCircles = true
     ) {
         Column(
             modifier = Modifier

@@ -115,6 +115,7 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                 }
                                 prefs.edit().putString("loggedInEmail", email).apply()
                                 _isSyncing.value = true // Trigger syncing screen
+                                kotlinx.coroutines.delay(50)
                                 _uiState.value = AuthState.Success(
                                     email = email,
                                     displayName = existingUser?.username ?: displayName,
@@ -134,6 +135,7 @@ class AuthViewModel(private val userRepository: UserRepository, private val cont
                                 if (existingUserLocal != null) {
                                     prefs.edit().putString("loggedInEmail", email).apply()
                                     _isSyncing.value = true
+                                    kotlinx.coroutines.delay(50)
                                     _uiState.value = AuthState.Success(
                                         email = email,
                                         displayName = existingUserLocal.username ?: displayName,

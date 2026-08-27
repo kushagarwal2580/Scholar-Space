@@ -43,6 +43,12 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.example.ui.theme.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -148,6 +154,7 @@ fun FileViewerOverlay(
     
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
     
+    var doubleTapSeekEvent by remember { mutableStateOf<DoubleTapSeekEvent?>(null) }
     val initialBrightness = remember { activity?.window?.attributes?.screenBrightness ?: -1f }
 
     DisposableEffect(Unit) {
@@ -435,8 +442,10 @@ fun FileViewerOverlay(
                                 val current = mp.currentPosition
                                 if (offset.x < screenWidth / 2) {
                                     mp.seekTo(maxOf(0, current - 10000))
+                                    doubleTapSeekEvent = DoubleTapSeekEvent(DoubleTapSeekDirection.Backward, System.currentTimeMillis())
                                 } else {
                                     mp.seekTo(minOf(videoDuration, current + 10000))
+                                    doubleTapSeekEvent = DoubleTapSeekEvent(DoubleTapSeekDirection.Forward, System.currentTimeMillis())
                                 }
                                 currentPosition = mp.currentPosition
                             }
@@ -913,8 +922,10 @@ fun FileViewerOverlay(
                                     val current = mediaPlayer.currentPosition
                                     if (offset.x < screenWidth / 2) {
                                         mediaPlayer.seekTo(maxOf(0, current - 10000))
+                                        doubleTapSeekEvent = DoubleTapSeekEvent(DoubleTapSeekDirection.Backward, System.currentTimeMillis())
                                     } else {
                                         mediaPlayer.seekTo(minOf(audioDuration, current + 10000))
+                                        doubleTapSeekEvent = DoubleTapSeekEvent(DoubleTapSeekDirection.Forward, System.currentTimeMillis())
                                     }
                                     currentPosition = mediaPlayer.currentPosition
                                 } catch (e: Exception) {}
@@ -1272,6 +1283,9 @@ fun FileViewerOverlay(
                 }
             }
         }
+
+        // Double Tap Seek Overlay
+        DoubleTapSeekOverlay(doubleTapSeekEvent)
 
         // Top App Bar
         if (!isInPipMode) {
@@ -2168,5 +2182,79 @@ fun MediaSessionHelper(
                 1.0f
             )
         mediaSession.setPlaybackState(stateBuilder.build())
+    }
+}
+
+enum class DoubleTapSeekDirection { Forward, Backward }
+data class DoubleTapSeekEvent(val direction: DoubleTapSeekDirection, val triggerTime: Long)
+
+@Composable
+fun DoubleTapSeekOverlay(event: DoubleTapSeekEvent?, modifier: Modifier = Modifier) {
+    if (event == null) return
+    var currentEvent by remember { mutableStateOf(event) }
+    var showOverlay by remember { mutableStateOf(false) }
+
+    LaunchedEffect(event) {
+        currentEvent = event
+        showOverlay = true
+        delay(500)
+        showOverlay = false
+    }
+
+    AnimatedVisibility(
+        visible = showOverlay,
+        enter = fadeIn(animationSpec = tween(150)),
+        exit = fadeOut(animationSpec = tween(300)),
+        modifier = modifier.fillMaxSize()
+    ) {
+        val isForward = currentEvent.direction == DoubleTapSeekDirection.Forward
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(
+                        if (!isForward) Color.Black.copy(alpha = 0.2f) else Color.Transparent,
+                        shape = RoundedCornerShape(topEnd = 500.dp, bottomEnd = 500.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!isForward) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.FastRewind,
+                            contentDescription = "Rewind",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("10 seconds", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(
+                        if (isForward) Color.Black.copy(alpha = 0.2f) else Color.Transparent,
+                        shape = RoundedCornerShape(topStart = 500.dp, bottomStart = 500.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isForward) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.FastForward,
+                            contentDescription = "Forward",
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("10 seconds", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }

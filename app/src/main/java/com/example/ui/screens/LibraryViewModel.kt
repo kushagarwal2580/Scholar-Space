@@ -187,6 +187,18 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             it
                         }
                     }
+                    _stopwatches.value = data.stopwatches.map {
+                        if (it.isRunning) {
+                            val elapsedSinceLastSave = System.currentTimeMillis() - data.timestamp
+                            val totalElapsed = it.elapsedMillis + elapsedSinceLastSave
+                            it.copy(
+                                elapsedMillis = totalElapsed,
+                                startTime = System.currentTimeMillis() - totalElapsed
+                            )
+                        } else {
+                            it
+                        }
+                    }
 
                     _dayCounters.value = data.dayCounters.map {
                         if (it.targetDateMillis > 0L) {
