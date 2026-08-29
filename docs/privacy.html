@@ -145,62 +145,7 @@
 
 
 
-<style id="scroll-animations-css">
-/* Smooth scroll reveal animations */
-.reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
-}
-.reveal-on-scroll.is-revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
 
-/* Add some staggered delays based on nth-child for lists */
-.grid > div:nth-child(1) { transition-delay: 0.05s; }
-.grid > div:nth-child(2) { transition-delay: 0.10s; }
-.grid > div:nth-child(3) { transition-delay: 0.15s; }
-.grid > div:nth-child(4) { transition-delay: 0.20s; }
-.grid > div:nth-child(5) { transition-delay: 0.25s; }
-.grid > div:nth-child(6) { transition-delay: 0.30s; }
-.grid > div:nth-child(7) { transition-delay: 0.35s; }
-.grid > div:nth-child(8) { transition-delay: 0.40s; }
-.grid > div:nth-child(9) { transition-delay: 0.45s; }
-.grid > div:nth-child(10) { transition-delay: 0.50s; }
-.grid > div:nth-child(11) { transition-delay: 0.55s; }
-.grid > div:nth-child(12) { transition-delay: 0.60s; }
-.grid > div:nth-child(13) { transition-delay: 0.65s; }
-.grid > div:nth-child(14) { transition-delay: 0.70s; }
-.grid > div:nth-child(15) { transition-delay: 0.75s; }
-.grid > div:nth-child(16) { transition-delay: 0.80s; }
-.grid > div:nth-child(17) { transition-delay: 0.85s; }
-.grid > div:nth-child(18) { transition-delay: 0.90s; }
-.grid > div:nth-child(19) { transition-delay: 0.95s; }
-.grid > div:nth-child(20) { transition-delay: 1.00s; }
-
-.feature-grid .feature-item:nth-child(1) { transition-delay: 0.05s; }
-.feature-grid .feature-item:nth-child(2) { transition-delay: 0.1s; }
-.feature-grid .feature-item:nth-child(3) { transition-delay: 0.15s; }
-.feature-grid .feature-item:nth-child(4) { transition-delay: 0.2s; }
-.feature-grid .feature-item:nth-child(5) { transition-delay: 0.25s; }
-.feature-grid .feature-item:nth-child(6) { transition-delay: 0.3s; }
-.feature-grid .feature-item:nth-child(7) { transition-delay: 0.35s; }
-.feature-grid .feature-item:nth-child(8) { transition-delay: 0.4s; }
-.feature-grid .feature-item:nth-child(9) { transition-delay: 0.45s; }
-.feature-grid .feature-item:nth-child(10) { transition-delay: 0.5s; }
-.feature-grid .feature-item:nth-child(11) { transition-delay: 0.55s; }
-.feature-grid .feature-item:nth-child(12) { transition-delay: 0.6s; }
-.feature-grid .feature-item:nth-child(13) { transition-delay: 0.65s; }
-.feature-grid .feature-item:nth-child(14) { transition-delay: 0.70s; }
-.feature-grid .feature-item:nth-child(15) { transition-delay: 0.75s; }
-.feature-grid .feature-item:nth-child(16) { transition-delay: 0.80s; }
-.feature-grid .feature-item:nth-child(17) { transition-delay: 0.85s; }
-.feature-grid .feature-item:nth-child(18) { transition-delay: 0.90s; }
-.feature-grid .feature-item:nth-child(19) { transition-delay: 0.95s; }
-.feature-grid .feature-item:nth-child(20) { transition-delay: 1.0s; }
-</style>
 
 
 <style id="premium-micro-animations">
@@ -266,6 +211,23 @@
 }
 </style>
 
+
+<style id="scroll-animations-css">
+/* Smooth scroll reveal animations */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-on-scroll.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+</style>
+
 </head>
 <body>
     <!-- Background Blobs -->
@@ -314,6 +276,28 @@
         </div>
     </div>
 
+
+
+
+<script id="mouse-parallax-js">
+document.addEventListener("DOMContentLoaded", () => {
+    // Parallax effect for blobs based on mouse movement
+    const blobs = document.querySelectorAll('.blob');
+    if (blobs.length > 0) {
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 40; // max 20px movement
+            const y = (e.clientY / window.innerHeight - 0.5) * 40;
+            
+            blobs.forEach((blob, index) => {
+                const speed = (index + 1) * 0.5;
+                blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+            });
+        });
+    }
+});
+</script>
+
+
 <script id="scroll-animations-js">
 document.addEventListener("DOMContentLoaded", () => {
     const observerOptions = {
@@ -322,29 +306,46 @@ document.addEventListener("DOMContentLoaded", () => {
         threshold: 0.1
     };
 
+    
+    let delayCounter = 0;
+    let delayTimer = null;
+
     const observer = new IntersectionObserver((entries, obs) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-revealed');
-                // Optional: Stop observing once revealed if you want it to stay
-                // obs.unobserve(entry.target); 
-            } else {
-                // If we want it to animate OUT when scrolling up/down, remove the class
-                entry.target.classList.remove('is-revealed');
-            }
+        const intersecting = entries.filter(entry => entry.isIntersecting && !entry.target.classList.contains('is-revealed'));
+        
+        intersecting.forEach((entry) => {
+            entry.target.style.transitionDelay = (delayCounter * 0.1) + 's';
+            entry.target.classList.add('is-revealed');
+            delayCounter++;
+            
+            if (delayTimer) clearTimeout(delayTimer);
+            delayTimer = setTimeout(() => {
+                delayCounter = 0;
+            }, 100); 
+        });
+
+        entries.filter(entry => !entry.isIntersecting).forEach(entry => {
+            entry.target.classList.remove('is-revealed');
+            entry.target.style.transitionDelay = '0s';
         });
     }, observerOptions);
 
+
     // Identify elements to animate
     const selectorsToAnimate = [
+        '.features-container > *',
+        '.container > h1',
+        '.container > h2',
+        '.container > p',
+        '.container > ul',
+        '.container > div',
         '#tab-dashboard .grid > div',
         '#tab-dashboard .mb-8 > div',
         '#library-grid > div',
         '#recent-notes-container > div',
         '#notes-list > div',
         '.feature-item',
-        '.container > h1',
-        '.container > p',
+        
         '.logo-container',
         '.privacy-container section',
         '.privacy-container h1',
@@ -373,25 +374,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     
     mutationObserver.observe(document.body, { childList: true, subtree: true });
-});
-</script>
-
-
-<script id="mouse-parallax-js">
-document.addEventListener("DOMContentLoaded", () => {
-    // Parallax effect for blobs based on mouse movement
-    const blobs = document.querySelectorAll('.blob');
-    if (blobs.length > 0) {
-        document.addEventListener('mousemove', (e) => {
-            const x = (e.clientX / window.innerWidth - 0.5) * 40; // max 20px movement
-            const y = (e.clientY / window.innerHeight - 0.5) * 40;
-            
-            blobs.forEach((blob, index) => {
-                const speed = (index + 1) * 0.5;
-                blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
-            });
-        });
-    }
 });
 </script>
 
