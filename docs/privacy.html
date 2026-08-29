@@ -212,6 +212,12 @@
 </style>
 
 
+
+
+
+
+
+
 <style id="scroll-animations-css">
 /* Smooth scroll reveal animations */
 .reveal-on-scroll {
@@ -298,6 +304,12 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 
+
+
+
+
+
+
 <script id="scroll-animations-js">
 document.addEventListener("DOMContentLoaded", () => {
     const observerOptions = {
@@ -313,9 +325,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const observer = new IntersectionObserver((entries, obs) => {
         const intersecting = entries.filter(entry => entry.isIntersecting && !entry.target.classList.contains('is-revealed'));
         
+        // Sort intersecting elements by their physical position on the screen
+        // Top-to-bottom, then Left-to-right for elements on the same row
+        intersecting.sort((a, b) => {
+            const topDiff = a.boundingClientRect.top - b.boundingClientRect.top;
+            if (Math.abs(topDiff) < 10) {
+                return a.boundingClientRect.left - b.boundingClientRect.left;
+            }
+            return topDiff;
+        });
+        
         intersecting.forEach((entry) => {
             entry.target.style.transitionDelay = (delayCounter * 0.1) + 's';
             entry.target.classList.add('is-revealed');
+            obs.unobserve(entry.target); // Stop observing once revealed
             delayCounter++;
             
             if (delayTimer) clearTimeout(delayTimer);
@@ -323,17 +346,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 delayCounter = 0;
             }, 100); 
         });
-
-        entries.filter(entry => !entry.isIntersecting).forEach(entry => {
-            entry.target.classList.remove('is-revealed');
-            entry.target.style.transitionDelay = '0s';
-        });
     }, observerOptions);
 
 
     // Identify elements to animate
     const selectorsToAnimate = [
-        '.features-container > *',
+        '.features-container > *:not(.feature-grid)',
         '.container > h1',
         '.container > h2',
         '.container > p',
