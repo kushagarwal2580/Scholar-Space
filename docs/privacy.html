@@ -245,48 +245,48 @@
         <h1>Privacy Policy</h1>
         <p style="text-align: center;"><strong>Last Updated: October 2026</strong></p>
 
-        <p>Scholar Space is built with a strict <strong>privacy-first, local-first</strong> architecture. This Privacy Policy clearly describes how our Android application operates, what information is involved, and how your privacy is guaranteed.</p>
+        <p>Scholar Space is built with a <strong>privacy-first, sync-first, and backup-first</strong> architecture. The core purpose of Scholar Space is to automatically sync, manage, and back up your study materials and files directly to your own Google Drive. This Privacy Policy clearly outlines how our Android application operates, what information is involved, and how your privacy is safeguarded.</p>
 
-        <h2>1. Zero Developer Access (No Backend Servers)</h2>
-        <p><strong>We do not own, operate, or maintain any backend servers or databases.</strong> As the developers, we have zero access to your device, your files, your Google Drive, or any data you create or manage within Scholar Space:</p>
+        <h2>1. Zero Developer Access to Your Data &amp; Files</h2>
+        <p><strong>We do not run, operate, or maintain any independent backend storage servers or file databases.</strong> As the developers, we have zero access to your device, your study files, or your Google Drive contents:</p>
         <ul>
-            <li>We cannot view, read, modify, track, or access any of your documents, notes, schedules, flashcards, recordings, or study materials.</li>
-            <li>We cannot see how many files you store, their names, file sizes, or your storage usage.</li>
-            <li>All data processing and storage occurs exclusively on your local device or directly between your installed app and your own personal Google Drive account.</li>
+            <li>We cannot view, read, modify, download, inspect, or track any of your documents, notes, schedules, flashcards, recordings, or study materials.</li>
+            <li>We cannot see how many files you store, what they are named, their file sizes, or how much storage you are using.</li>
+            <li>All file processing, caching, and backups happen directly between the Scholar Space app on your device and your personal Google Drive storage.</li>
         </ul>
 
-        <h2>2. Information and Authentication</h2>
+        <h2>2. Google Authentication &amp; Drive Integration</h2>
+        <p>Because Scholar Space is designed from the ground up for seamless cloud backup and multi-device synchronization, signing in with your Google Account is an integral part of using the application:</p>
         <ul>
-            <li><strong>Local Device Storage:</strong> Your notes, library files, timetable schedules, stopwatch and timer sessions, bookmarks, and user preferences are stored exclusively on your device's local storage (via local database and files).</li>
-            <li><strong>Google Authentication (Google Sign-In):</strong> When you choose to sign in, the authentication is handled securely on-device by Google Identity Services. The app receives basic authentication information (such as your Google account email and display name) solely within the app on your phone to display your account profile and connect to your Google Drive. <strong>This information is never transmitted to us or any third-party server.</strong></li>
-            <li><strong>Google Drive Backup &amp; Sync:</strong> If you connect Google Drive, the app directly interfaces with Google Drive API from your device using the restricted <code>drive.file</code> scope. This grants the app client permission to create and sync files only inside an app-created folder in your own personal Google Drive. Neither the developers nor any intermediary service can view, read, inspect, or manage any files or folders in your Google Drive.</li>
+            <li><strong>Google Authentication (Google Sign-In):</strong> Authentication is handled securely through Google Identity Services / Firebase Auth. When you sign in to Scholar Space, standard authentication records (specifically your Google account name, email address, and user ID) are registered in the Google Cloud / Firebase Console to authenticate your session. This is the only account information visible to us as app administrators—identifying which users have signed into the app.</li>
+            <li><strong>Google Drive Synchronization:</strong> The application uses the restricted <code>drive.file</code> scope to establish a direct connection between your device and your personal Google Drive. This scope allows Scholar Space to create, sync, and back up files exclusively within an application-specific folder in your own Google Drive. Neither the developers nor any third party have access to view, read, or touch any files in your Google Drive.</li>
+            <li><strong>Local Caching &amp; Preferences:</strong> For quick access and smooth performance, your current study files, timetable schedules, timer sessions, and preferences are cached locally on your device and kept in sync with your cloud backup.</li>
         </ul>
 
         <h2>3. Device Permissions &amp; Hardware Usage</h2>
         <p>Scholar Space only requests device permissions necessary for features you actively use, handled entirely on your device:</p>
         <ul>
             <li><strong>Notifications &amp; Foreground Services:</strong> Used to display live stopwatch/timer progress, alarm reminders, and persistent timer controls in your status bar. No notification data leaves your phone.</li>
-            <li><strong>Audio Recording:</strong> Used solely if you record voice memos or audio notes within your study library. Audio is saved only to your local device.</li>
+            <li><strong>Audio Recording:</strong> Used solely if you record voice memos or audio notes within your study library. Audio is saved to your device and synced directly to your Google Drive backup.</li>
             <li><strong>Exact Alarms:</strong> Used to deliver timely schedule alerts and study reminders at user-configured times.</li>
         </ul>
 
         <h2>4. Data Retention, Control, and Deletion</h2>
-        <p>Because you retain 100% ownership and custody of your data:</p>
+        <p>You retain 100% ownership and control over your files and backups at all times:</p>
         <ul>
-            <li><strong>Local Data:</strong> You can completely erase your data at any time by clearing the app's cache and storage in Android Settings, or by uninstalling the application.</li>
-            <li><strong>Google Drive Cloud Data:</strong> You can view, manage, download, or delete your backup files directly in your Google Drive at any time. To remove all cloud backups, simply delete the "Scholar Space" folder from your Google Drive, or revoke the app's access in your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Account Security Settings</a>.</li>
+            <li><strong>Local Data:</strong> You can completely erase your local app cache and data at any time by clearing storage in Android Settings or by uninstalling the application.</li>
+            <li><strong>Google Drive Cloud Data:</strong> You have direct access to all your synced files inside your Google Drive. You can inspect, download, or delete your backups at any time by removing the "Scholar Space" folder from your Google Drive. You can also revoke the app's access to your Google Account at any time via your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Account Security Settings</a>.</li>
         </ul>
 
         <h2>5. Third-Party Services</h2>
-        <p>The app directly integrates with standard Google Play services (Google Identity Services and Google Drive API). Their handling of authentication and cloud storage on Google's infrastructure is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.</p>
+        <p>The app directly integrates with standard Google Play services (Google Identity Services and Google Drive API). Their handling of authentication and cloud infrastructure is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.</p>
 
         <h2>6. Changes to This Policy</h2>
         <p>We may update this Privacy Policy from time to time as new app features are introduced. The updated version will always be indicated by the "Last Updated" date at the top of this page.</p>
 
         <h2>7. Contact Us</h2>
-        <p>If you have any questions or concerns regarding this Privacy Policy or your data, you can reach out through:</p>
+        <p>If you have any questions or concerns regarding this Privacy Policy or need support, you can reach out through:</p>
         <ul>
-            <li>Email: <a href="mailto:app.scholarspace@gmail.com">app.scholarspace@gmail.com</a></li>
             <li>Our <a href="feedback.html">Feedback &amp; Support</a> portal</li>
             <li>Our <a href="https://github.com/kushagarwal2580/Scholar-Space" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
         </ul>
