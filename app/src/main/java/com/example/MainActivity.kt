@@ -850,7 +850,15 @@ private fun MainAppContent(
         }
         
         LaunchedEffect(viewingItem) {
-            if (viewingItem != null) {
+            if (viewingItem == null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    try {
+                        val resetParams = android.app.PictureInPictureParams.Builder()
+                            .setAutoEnterEnabled(false)
+                            .build()
+                        activity.setPictureInPictureParams(resetParams)
+                    } catch (e: Exception) {}
+                }
             }
         }
 

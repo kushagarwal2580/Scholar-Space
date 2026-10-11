@@ -163,6 +163,16 @@ fun FileViewerOverlay(
             // Restore to system brightness (-1f) when leaving the player
             layoutParams?.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
             activity?.window?.attributes = layoutParams
+
+            // Reset Picture-in-Picture auto enter so minimizing the app doesn't trigger PiP
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                try {
+                    val resetParams = android.app.PictureInPictureParams.Builder()
+                        .setAutoEnterEnabled(false)
+                        .build()
+                    activity?.setPictureInPictureParams(resetParams)
+                } catch (e: Exception) {}
+            }
         }
     }
 
@@ -331,6 +341,15 @@ fun FileViewerOverlay(
                 androidx.compose.runtime.DisposableEffect(item.uri) {
                     onDispose {
                         mediaPlayerRef?.release()
+                        mediaPlayerRef = null
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            try {
+                                val resetParams = android.app.PictureInPictureParams.Builder()
+                                    .setAutoEnterEnabled(false)
+                                    .build()
+                                activity?.setPictureInPictureParams(resetParams)
+                            } catch (e: Exception) {}
+                        }
                     }
                 }
                 
