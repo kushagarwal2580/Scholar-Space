@@ -1,10 +1,12 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -12,6 +14,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.Cyan500
 import com.example.ui.theme.Indigo500
+import com.example.ui.theme.AppTheme
+import com.example.ui.theme.LocalAppTheme
 
 @Composable
 fun GlassBackground(
@@ -19,15 +23,29 @@ fun GlassBackground(
     drawBackgroundAndCircles: Boolean = true,
     content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
 ) {
-    val isDark = true
+    val appTheme = LocalAppTheme.current
+    val isSystemDark = isSystemInDarkTheme()
     
+    val isDark = when (appTheme) {
+        AppTheme.LIGHT_GLASS -> true
+        AppTheme.DARK -> true
+        AppTheme.SYSTEM -> isSystemDark
+    }
+        
+    val isGlassTheme = appTheme == AppTheme.LIGHT_GLASS || (appTheme == AppTheme.SYSTEM && !isSystemDark)
+
     if (drawBackgroundAndCircles) {
-        val bgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-        val circleColor1 = if (isDark) Color(0xFF6366F1).copy(alpha = 0.15f) else Color(0xFF6366F1).copy(alpha = 0.1f) // Indigo
-        val circleColor2 = if (isDark) Color(0xFFD946EF).copy(alpha = 0.15f) else Color(0xFFD946EF).copy(alpha = 0.08f) // Fuchsia
-        val circleColor3 = if (isDark) Color(0xFFA855F7).copy(alpha = 0.15f) else Color(0xFFA855F7).copy(alpha = 0.08f) // Purple
-        val circleColor4 = if (isDark) Color(0xFF0EA5E9).copy(alpha = 0.1f) else Color(0xFF0EA5E9).copy(alpha = 0.05f) // Sky Blue
-        val glowColor = if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.1f) else Color(0xFF8B5CF6).copy(alpha = 0.05f) // Violet
+        val targetBgColor = if (isGlassTheme) Color(0xFF0F172A) else com.example.ui.theme.Slate900
+        val bgColor by androidx.compose.animation.animateColorAsState(targetBgColor, androidx.compose.animation.core.tween(600), label = "bgColor")
+        
+        val alphaMultiplier = if (isGlassTheme) 1f else 0f
+        val animatedAlpha by androidx.compose.animation.core.animateFloatAsState(alphaMultiplier, androidx.compose.animation.core.tween(600), label = "glassAlpha")
+        
+        val circleColor1 = Color(0xFF6366F1).copy(alpha = 0.15f * animatedAlpha)
+        val circleColor2 = Color(0xFFD946EF).copy(alpha = 0.15f * animatedAlpha)
+        val circleColor3 = Color(0xFFA855F7).copy(alpha = 0.15f * animatedAlpha)
+        val circleColor4 = Color(0xFF0EA5E9).copy(alpha = 0.1f * animatedAlpha)
+        val glowColor = Color(0xFF8B5CF6).copy(alpha = 0.1f * animatedAlpha)
 
         Box(
             modifier = modifier
@@ -36,7 +54,7 @@ fun GlassBackground(
                     val width = size.width
                     val height = size.height
                     
-                    if (width > 0f && height > 0f) {
+                    if (width > 0f && height > 0f && animatedAlpha > 0f) {
                         val maxDim = maxOf(width, height)
                         
                         val brush1 = Brush.radialGradient(

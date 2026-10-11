@@ -208,9 +208,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val isDarkMode by libraryViewModel.isDarkMode.collectAsState()
+            val appThemeName by libraryViewModel.appTheme.collectAsState()
+            val appTheme = try { com.example.ui.theme.AppTheme.valueOf(appThemeName) } catch (e: Exception) { com.example.ui.theme.AppTheme.SYSTEM }
             
-            MyApplicationTheme {
+            MyApplicationTheme(appTheme = appTheme) {
                 val isImeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
                 val authState by authViewModel.uiState.collectAsState()
                 val isSyncing by authViewModel.isSyncing.collectAsState()
@@ -800,8 +801,12 @@ private fun MainAppContent(
 
                 val isSearchActive by libraryViewModel.isSearchActive.collectAsState()
                 if (!isImeVisible && !isEditingNote && currentTab != "settings" && !isSearchActive) {
-                    val isDark = true
-                    val bottomBgColor = if (isDark) androidx.compose.ui.graphics.Color(0xFF0F172A) else androidx.compose.ui.graphics.Color(0xFFF8FAFC)
+                    val appTheme = com.example.ui.theme.LocalAppTheme.current
+                    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+                    val isGlassTheme = appTheme == com.example.ui.theme.AppTheme.LIGHT_GLASS || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && !isSystemDark)
+                    val isDark = appTheme == com.example.ui.theme.AppTheme.DARK || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && isSystemDark)
+                    val targetBottomBgColor = if (isGlassTheme) androidx.compose.ui.graphics.Color(0xFF0F172A) else com.example.ui.theme.Slate900
+                    val bottomBgColor by androidx.compose.animation.animateColorAsState(targetBottomBgColor, androidx.compose.animation.core.tween(600), label = "bottomBg")
                     androidx.compose.foundation.layout.Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)

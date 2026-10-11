@@ -48,34 +48,102 @@ class ActiveTimersService : Service() {
         startTicking()
     }
 
+    private fun stopServiceCompletely() {
+        isServiceRunning = false
+        stopTicking()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(NOTIFICATION_ID)
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val pendingIntent = android.app.PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, com.example.MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                putExtra("OPEN_TAB", "dashboard")
-            },
-            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        if (intent != null && intent.action != null) {
+            val hasRunningRemaining = handleAction(intent)
+            if (!hasRunningRemaining) {
+                stopServiceCompletely()
+                return START_NOT_STICKY
+            }
+        }
 
         val notification = com.example.ui.notifications.NotificationHelper.getActiveTimersNotification(this)
-            ?: NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Scholar Space")
-                .setContentText("Active timers are running")
-                .setSmallIcon(R.drawable.ic_stat_logo)
-                .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                .setOnlyAlertOnce(true)
-                .build()
+        if (notification == null) {
+            stopServiceCompletely()
+            return START_NOT_STICKY
+        }
         
+        isServiceRunning = true
         startForeground(NOTIFICATION_ID, notification)
-        
         startTicking()
         
         return START_STICKY
+    }
+
+    private fun handleAction(intent: Intent): Boolean {
+        val action = intent.action ?: return false
+        val prefs = getSharedPreferences("LibraryPrefs", Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString("app_state", null) ?: return false
+        val data = try { json.decodeFromString<com.example.ui.screens.AppStateData>(jsonStr) } catch(e:Exception) { return false }
+        
+        val now = System.currentTimeMillis()
+        val elapsedSeconds = ((now - data.timestamp) / 1000).toInt()
+        
+        val adjustedTimers = data.timers.map {
+            if (it.isRunning) {
+                val newTime = (it.timeRemaining - elapsedSeconds).coerceAtLeast(0)
+                it.copy(timeRemaining = newTime, isRunning = newTime > 0)
+            } else it
+        }
+        val adjustedStopwatches = data.stopwatches.map {
+            if (it.isRunning) {
+                val el = it.elapsedMillis + (now - data.timestamp)
+                it.copy(elapsedMillis = el, startTime = now - el)
+            } else it
+        }
+        
+        var finalTimers = adjustedTimers
+        var finalStopwatches = adjustedStopwatches
+        
+        when (action) {
+            "com.example.ACTION_TOGGLE_TIMER" -> {
+                val id = intent.getIntExtra("TIMER_ID", -1)
+                finalTimers = adjustedTimers.map { if (it.id == id) it.copy(isRunning = !it.isRunning) else it }
+                finalTimers.find { it.id == id }?.let { com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, it) }
+            }
+            "com.example.ACTION_RESET_TIMER" -> {
+                val id = intent.getIntExtra("TIMER_ID", -1)
+                finalTimers = adjustedTimers.map { if (it.id == id) it.copy(isRunning = false, timeRemaining = it.durationMinutes * 60 + it.durationSeconds) else it }
+                finalTimers.find { it.id == id }?.let { com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, it) }
+            }
+            "com.example.ACTION_TOGGLE_STOPWATCH" -> {
+                val id = intent.getIntExtra("STOPWATCH_ID", -1)
+                finalStopwatches = adjustedStopwatches.map { 
+                    if (it.id == id) {
+                        if (it.isRunning) it.copy(isRunning = false, elapsedMillis = now - it.startTime)
+                        else it.copy(isRunning = true, startTime = now - it.elapsedMillis)
+                    } else it 
+                }
+                finalStopwatches.find { it.id == id }?.let { com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(this, it) }
+            }
+            "com.example.ACTION_RESET_STOPWATCH" -> {
+                val id = intent.getIntExtra("STOPWATCH_ID", -1)
+                finalStopwatches = adjustedStopwatches.map { if (it.id == id) it.copy(isRunning = false, elapsedMillis = 0L, startTime = now) else it }
+                finalStopwatches.find { it.id == id }?.let { com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(this, it) }
+            }
+        }
+        
+        val updatedData = data.copy(timers = finalTimers, stopwatches = finalStopwatches, timestamp = now)
+        prefs.edit().putString("app_state", json.encodeToString(updatedData)).apply()
+
+        LibraryViewModel.activeInstance?.syncFromExternalUpdate(finalTimers, finalStopwatches)
+
+        val hasAnyRunning = finalTimers.any { it.isRunning && it.timeRemaining > 0 } || finalStopwatches.any { it.isRunning }
+        return hasAnyRunning
     }
 
     private fun startTicking() {
@@ -239,11 +307,20 @@ class ActiveTimersService : Service() {
                 prefs.edit().putString("app_state", json.encodeToString(updatedData)).apply()
             }
             
-            // 4. Update individual notifications ONLY if they reached zero
+            // 4. Update individual notifications for running items and finished timers
             updatedTimers.forEach { newTimer ->
-                val oldTimer = data.timers.find { it.id == newTimer.id }
-                if (oldTimer != null && oldTimer.isRunning && !newTimer.isRunning && newTimer.timeRemaining <= 0) {
+                if (newTimer.isRunning && newTimer.timeRemaining > 0) {
                     com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, newTimer)
+                } else {
+                    val oldTimer = data.timers.find { it.id == newTimer.id }
+                    if (oldTimer != null && oldTimer.isRunning && newTimer.timeRemaining <= 0) {
+                        com.example.ui.notifications.NotificationHelper.updateTimerNotification(this, newTimer)
+                    }
+                }
+            }
+            updatedStopwatches.forEach { sw ->
+                if (sw.isRunning) {
+                    com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(this, sw)
                 }
             }
             
@@ -256,7 +333,7 @@ class ActiveTimersService : Service() {
                     manager.notify(NOTIFICATION_ID, foregroundNotification)
                 }
             } else {
-                stopSelf()
+                stopServiceCompletely()
             }
         } catch (e: Exception) {
             android.util.Log.e("ActiveTimersService", "Error ticking in background service", e)

@@ -838,7 +838,10 @@ fun NoteCard(
     onLongClick: () -> Unit = {},
     onDeleteClick: () -> Unit
 ) {
-    val isDark = true
+    val appTheme = com.example.ui.theme.LocalAppTheme.current
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isGlassTheme = appTheme == com.example.ui.theme.AppTheme.LIGHT_GLASS || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && !isSystemDark)
+    val isDark = appTheme == com.example.ui.theme.AppTheme.DARK || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && isSystemDark)
     val context = LocalContext.current
     var showCardMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -865,7 +868,7 @@ fun NoteCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassMorphic(RoundedCornerShape(24.dp), isDark = isDark)
+            .glassMorphic(RoundedCornerShape(24.dp))
             .let { if (isSelected) it.border(1.dp, Cyan400, RoundedCornerShape(24.dp)).background(Cyan500.copy(alpha = 0.1f), RoundedCornerShape(24.dp)) else it }
             .combinedClickable(
                 onClick = onClick,

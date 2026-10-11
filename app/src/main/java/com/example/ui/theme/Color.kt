@@ -18,3 +18,6 @@ val Indigo600 = Color(0xFF4F46E5)
 val Cyan300 = Color(0xFF67E8F9)
 val Cyan400 = Color(0xFF22D3EE)
 val Cyan500 = Color(0xFF06B6D4)
+
+val Red500 = Color(0xFFEF4444)
+val Cyan600 = Color(0xFF0891B2)

@@ -96,6 +96,7 @@ data class AppStateData(
     val dayCounters: List<DayCounter> = emptyList(),
     val timers: List<TimerItem> = emptyList(),
     val isDarkMode: Boolean = true,
+    val appTheme: String = "SYSTEM",
     val reminders: Map<String, List<Reminder>> = emptyMap(),
     val notes: List<NoteItem> = emptyList(),
     val voiceNotes: List<VoiceNote> = emptyList(),
@@ -163,7 +164,10 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     var onStateChangedListener: (() -> Unit)? = null
 
     var isAppInForeground = false
-        private set
+    fun syncFromExternalUpdate(updatedTimers: List<TimerItem>, updatedStopwatches: List<StopwatchItem>) {
+        _timers.value = updatedTimers
+        _stopwatches.value = updatedStopwatches
+    }
 
     private fun adjustTimersForElapsedTime() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -227,17 +231,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         // Adjust timers based on elapsed time without wiping out memory state
         adjustTimersForElapsedTime()
         
-        // Cancel all active running notifications immediately
+        // Cancel all active notifications when in foreground
         val app = getApplication<Application>()
         _timers.value.forEach {
-            if (it.isRunning) {
-                com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + it.id)
-            }
+            com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + it.id)
         }
         _stopwatches.value.forEach {
-            if (it.isRunning) {
-                com.example.ui.notifications.NotificationHelper.cancelNotification(app, it.id)
-            }
+            com.example.ui.notifications.NotificationHelper.cancelNotification(app, it.id)
         }
         
         if (_currentTab.value == "calendar") {
@@ -251,16 +251,20 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         isAppInForeground = false
         saveData()
         
-        // Show/update notifications for running items immediately so they appear instantly when minimizing
+        // Only show notifications for timers and stopwatches that are actively running
         val app = getApplication<Application>()
         _timers.value.forEach {
-            if (it.isRunning) {
+            if (it.isRunning && it.timeRemaining > 0) {
                 com.example.ui.notifications.NotificationHelper.updateTimerNotification(app, it)
+            } else {
+                com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + it.id)
             }
         }
         _stopwatches.value.forEach {
             if (it.isRunning) {
                 com.example.ui.notifications.NotificationHelper.updateStopwatchNotification(app, it)
+            } else {
+                com.example.ui.notifications.NotificationHelper.cancelNotification(app, it.id)
             }
         }
         
@@ -297,6 +301,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             dayCounters = _dayCounters.value,
             timers = defaultTimers,
             isDarkMode = _isDarkMode.value,
+                appTheme = _appTheme.value,
             reminders = _allReminders.value,
             notes = _notes.value,
             voiceNotes = _voiceNotes.value,
@@ -317,6 +322,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         // on regular app restarts to prevent overwriting active background timers/stopwatches.
         _dayCounters.value = data.dayCounters
         _isDarkMode.value = data.isDarkMode
+        _appTheme.value = data.appTheme
         _allReminders.value = data.reminders
         _notes.value = data.notes
         _voiceNotes.value = data.voiceNotes
@@ -891,6 +897,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private val _isDarkMode = MutableStateFlow(true)
+    private val _appTheme = MutableStateFlow("SYSTEM")
+    val appTheme: StateFlow<String> = _appTheme.asStateFlow()
     val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
 
     private val _currentFolderId = MutableStateFlow<String?>(null)
@@ -972,6 +980,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 dayCounters = _dayCounters.value,
                 timers = _timers.value,
                 isDarkMode = _isDarkMode.value,
+                appTheme = _appTheme.value,
                 reminders = _allReminders.value,
                 notes = _notes.value,
                 voiceNotes = _voiceNotes.value,
@@ -1105,6 +1114,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         _timers.value = adjustedTimers
                         _dayCounters.value = adjustedDayCounters
                         _isDarkMode.value = data.isDarkMode
+        _appTheme.value = data.appTheme
                         _allReminders.value = data.reminders
                         _notes.value = data.notes
                         _pinnedNote1Id.value = data.pinnedNote1Id
@@ -1165,7 +1175,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private var lastReminderCheckTime = 0L
 
     fun tickTimers() {
-        if (!isAppInForeground && com.example.services.ActiveTimersService.isServiceRunning) {
+        if (!isAppInForeground) {
             return
         }
         var completedTimer = false
@@ -1182,11 +1192,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 }
                 val app = getApplication<Application>()
                 if (isAppInForeground) {
-                    if (updated.isRunning) {
+                    com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + updated.id)
+                } else {
+                    if (updated.isRunning && updated.timeRemaining > 0) {
+                        com.example.ui.notifications.NotificationHelper.updateTimerNotification(app, updated)
+                    } else {
                         com.example.ui.notifications.NotificationHelper.cancelNotification(app, 10000 + updated.id)
                     }
-                } else {
-                    com.example.ui.notifications.NotificationHelper.updateTimerNotification(app, updated)
                 }
                 updated
             }
@@ -1418,8 +1430,14 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         setCurrentFolderId(null)
     }
 
+    fun setAppTheme(themeName: String) {
+        _appTheme.value = themeName
+        saveData()
+    }
+
     fun toggleTheme(isDark: Boolean) {
         _isDarkMode.value = isDark
+        _appTheme.value = "SYSTEM"
         saveData()
     }
 

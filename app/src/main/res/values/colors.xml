@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Notification adaptive colors (Light mode default) -->
+    <color name="notification_text_primary">#FF111827</color>
+    <color name="notification_text_secondary">#FF4B5563</color>
+    <color name="notification_icon_tint">#FF111827</color>
 </resources>

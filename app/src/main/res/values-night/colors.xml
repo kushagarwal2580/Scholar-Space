@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification adaptive colors (Dark mode) -->
+    <color name="notification_text_primary">#FFFFFFFF</color>
+    <color name="notification_text_secondary">#FFA1A1AA</color>
+    <color name="notification_icon_tint">#FFFFFFFF</color>
+</resources>

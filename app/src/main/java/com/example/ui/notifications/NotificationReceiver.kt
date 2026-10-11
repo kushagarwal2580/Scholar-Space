@@ -131,9 +131,28 @@ class NotificationReceiver : BroadcastReceiver() {
                 "com.example.ACTION_TOGGLE_TIMER" -> {
                     if (timerId != -1) activeVm.toggleTimer(timerId)
                 }
+                "com.example.ACTION_RESET_TIMER" -> {
+                    if (timerId != -1) activeVm.resetTimer(timerId)
+                }
+                "com.example.ACTION_RESET_STOPWATCH" -> {
+                    if (stopwatchId != -1) activeVm.resetStopwatch(stopwatchId)
+                }
             }
         } else {
-            // App is closed, handle in the background and update SharedPreferences
+            // App is closed. Route via ActiveTimersService if it is running to prevent race conditions.
+            if (com.example.services.ActiveTimersService.isServiceRunning) {
+                val serviceIntent = Intent(context, com.example.services.ActiveTimersService::class.java).apply {
+                    this.action = action
+                    if (action == "com.example.ACTION_TOGGLE_TIMER" || action == "com.example.ACTION_RESET_TIMER") {
+                        putExtra("TIMER_ID", timerId)
+                    } else if (action == "com.example.ACTION_TOGGLE_STOPWATCH" || action == "com.example.ACTION_RESET_STOPWATCH") {
+                        putExtra("STOPWATCH_ID", stopwatchId)
+                    }
+                }
+                context.startService(serviceIntent)
+                return
+            }
+
             try {
                 val prefs = context.getSharedPreferences("LibraryPrefs", Context.MODE_PRIVATE)
                 val jsonStr = prefs.getString("app_state", null)
@@ -204,6 +223,30 @@ class NotificationReceiver : BroadcastReceiver() {
                         if (targetTimer != null) {
                             NotificationHelper.updateTimerNotification(context, targetTimer)
                         }
+                    } else if (action == "com.example.ACTION_RESET_TIMER" && timerId != -1) {
+                        finalTimers = adjustedTimers.map {
+                            if (it.id == timerId) {
+                                it.copy(isRunning = false, timeRemaining = it.durationMinutes * 60 + it.durationSeconds)
+                            } else {
+                                it
+                            }
+                        }
+                        val target = finalTimers.find { it.id == timerId }
+                        if (target != null) {
+                            NotificationHelper.updateTimerNotification(context, target)
+                        }
+                    } else if (action == "com.example.ACTION_RESET_STOPWATCH" && stopwatchId != -1) {
+                        finalStopwatches = adjustedStopwatches.map {
+                            if (it.id == stopwatchId) {
+                                it.copy(isRunning = false, elapsedMillis = 0L, startTime = now)
+                            } else {
+                                it
+                            }
+                        }
+                        val target = finalStopwatches.find { it.id == stopwatchId }
+                        if (target != null) {
+                            NotificationHelper.updateStopwatchNotification(context, target)
+                        }
                     }
                     
                     val updatedData = data.copy(
@@ -213,6 +256,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     )
                     
                     prefs.edit().putString("app_state", json.encodeToString(updatedData)).apply()
+                    LibraryViewModel.activeInstance?.syncFromExternalUpdate(finalTimers, finalStopwatches)
 
                     val hasRunning = finalTimers.any { it.isRunning && it.timeRemaining > 0 } || finalStopwatches.any { it.isRunning }
                     if (!hasRunning && com.example.services.ActiveTimersService.isServiceRunning) {
@@ -368,6 +412,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     timestamp = now
                 )
                 prefs.edit().putString("app_state", json.encodeToString(updatedData)).apply()
+                LibraryViewModel.activeInstance?.syncFromExternalUpdate(adjustedTimers, adjustedStopwatches)
             }
 
             val hasRunning = adjustedTimers.any { it.isRunning && it.timeRemaining > 0 } || adjustedStopwatches.any { it.isRunning }

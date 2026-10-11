@@ -1461,7 +1461,7 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // SLOT 1
+                                // SLOT 1
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -1505,6 +1505,37 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote1 != null) {
+                                    val formattedDate = remember(voiceNote1.createdAt) {
+                                        val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+                                        sdf.format(java.util.Date(voiceNote1.createdAt))
+                                    }
+                                    val durationStr = remember(voiceNote1.durationMillis) {
+                                        val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(voiceNote1.durationMillis)
+                                        val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(voiceNote1.durationMillis) % 60
+                                        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                                    }
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().weight(1f), 
+                                        verticalArrangement = Arrangement.Center, 
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(modifier = Modifier.size(44.dp).background(Cyan400.copy(alpha=0.15f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = Cyan400,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = durationStr,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Cyan400.copy(alpha = 0.8f),
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
                                 } else {
                                     Text(
                                         text = textNote1?.content?.ifBlank { "No content" } ?: "",
@@ -1554,8 +1585,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-
-                // SLOT 2
+                                // SLOT 2
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -1599,6 +1629,37 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 if (voiceNote2 != null) {
+                                    val formattedDate = remember(voiceNote2.createdAt) {
+                                        val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+                                        sdf.format(java.util.Date(voiceNote2.createdAt))
+                                    }
+                                    val durationStr = remember(voiceNote2.durationMillis) {
+                                        val minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(voiceNote2.durationMillis)
+                                        val seconds = java.util.concurrent.TimeUnit.MILLISECONDS.toSeconds(voiceNote2.durationMillis) % 60
+                                        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                                    }
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().weight(1f), 
+                                        verticalArrangement = Arrangement.Center, 
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(modifier = Modifier.size(44.dp).background(Cyan400.copy(alpha=0.15f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = Cyan400,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = durationStr,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Cyan400.copy(alpha = 0.8f),
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
                                 } else {
                                     Text(
                                         text = textNote2?.content?.ifBlank { "No content" } ?: "",
@@ -1650,21 +1711,8 @@ fun DashboardScreen(
                 }
             }
 
-            // Audio Playback overlay
-            showAudioPlayDialogForNote?.let { note ->
-                AudioPlayDialog(
-                    note = note,
-                    driveViewModel = driveViewModel,
-                    libraryViewModel = libraryViewModel,
-                    onDismiss = {
-                        showAudioPlayDialogForNote = null 
-                    }
-                )
-            }
-
-            // Note Selection Dialog overlay
-            showNoteSelectionDialogForSlot?.let { slot ->
-                val context = androidx.compose.ui.platform.LocalContext.current
+            if (showNoteSelectionDialogForSlot != null) {
+                val slot = showNoteSelectionDialogForSlot!!
                 val otherSlotPinnedId = if (slot == 1) pinnedNote2Id else pinnedNote1Id
                 
                 androidx.compose.ui.window.Dialog(
@@ -1689,7 +1737,7 @@ fun DashboardScreen(
                                     fontSize = 20.sp
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
-
+                                
                                 val scrollState = androidx.compose.foundation.rememberScrollState()
                                 Column(
                                     modifier = Modifier
@@ -1749,35 +1797,20 @@ fun DashboardScreen(
                                                     if (contentPreview.isNotBlank()) {
                                                         Text(
                                                             text = contentPreview,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             fontSize = 12.sp,
                                                             maxLines = 1,
                                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                                         )
                                                     }
                                                 }
-                                                
-                                                if (isPinnedInThis) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Pinned",
-                                                        tint = Cyan400,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                } else if (isPinnedInOther) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.PushPin,
-                                                        contentDescription = "Pinned in other container",
-                                                        tint = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                }
                                             }
                                         }
                                     }
                                 }
-
+                                
                                 Spacer(modifier = Modifier.height(24.dp))
+                                
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1975,6 +2008,16 @@ fun DashboardScreen(
                     val uri = android.net.Uri.fromFile(persistentFile)
                     libraryViewModel.addVoiceNote(title, uri, driveViewModel, context)
                 }
+            )
+        }
+
+
+        if (showAudioPlayDialogForNote != null) {
+            AudioPlayDialog(
+                note = showAudioPlayDialogForNote!!,
+                driveViewModel = driveViewModel,
+                libraryViewModel = libraryViewModel,
+                onDismiss = { showAudioPlayDialogForNote = null }
             )
         }
 
@@ -2234,17 +2277,24 @@ fun BottomNavBar(
     onAddClick: () -> Unit
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val isDark = true
-    val bgColor = if (isDark) {
-        Color(0xFF0F172A).copy(alpha = 0.35f) // Slate 900 highly translucent
+    val appTheme = com.example.ui.theme.LocalAppTheme.current
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isGlassTheme = appTheme == com.example.ui.theme.AppTheme.LIGHT_GLASS || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && !isSystemDark)
+    val isDark = appTheme == com.example.ui.theme.AppTheme.DARK || (appTheme == com.example.ui.theme.AppTheme.SYSTEM && isSystemDark)
+    val targetBgColor = if (isGlassTheme) {
+        Color(0xFF0F172A).copy(alpha = 0.35f)
     } else {
-        Color(0xFFFFFFFF).copy(alpha = 0.45f) // Pure white highly translucent
+        com.example.ui.theme.Slate800.copy(alpha = 0.8f)
     }
-    val borderColor = if (isDark) {
+    val targetBorderColor = if (isGlassTheme) {
         Color.White.copy(alpha = 0.12f)
+    } else if (isDark) {
+        Color.White.copy(alpha = 0.05f)
     } else {
         Color.Black.copy(alpha = 0.10f)
     }
+    val bgColor by androidx.compose.animation.animateColorAsState(targetBgColor, androidx.compose.animation.core.tween(600), label = "navBg")
+    val borderColor by androidx.compose.animation.animateColorAsState(targetBorderColor, androidx.compose.animation.core.tween(600), label = "navBorder")
 
     androidx.compose.foundation.layout.Box(
         modifier = Modifier

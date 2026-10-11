@@ -393,6 +393,60 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
+                // THEME SECTION
+                item {
+                    val appThemeName by libraryViewModel.appTheme.collectAsState()
+                    val currentTheme = try { com.example.ui.theme.AppTheme.valueOf(appThemeName) } catch (e: Exception) { com.example.ui.theme.AppTheme.SYSTEM }
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .glassMorphic(RoundedCornerShape(24.dp))
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                            Text(
+                                text = "Theme",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = com.example.ui.theme.Cyan400,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            val themes = com.example.ui.theme.AppTheme.values()
+                            themes.forEach { theme ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { libraryViewModel.setAppTheme(theme.name) }
+                                        .padding(vertical = 12.dp, horizontal = 8.dp)
+                                ) {
+                                    androidx.compose.material3.RadioButton(
+                                        selected = currentTheme == theme,
+                                        onClick = { libraryViewModel.setAppTheme(theme.name) },
+                                        colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                            selectedColor = com.example.ui.theme.Cyan400,
+                                            unselectedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = theme.displayName,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
                 // INSTRUCTIONS SECTION
                 item {
                     Box(
